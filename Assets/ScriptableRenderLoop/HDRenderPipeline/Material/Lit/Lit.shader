@@ -224,6 +224,28 @@ Shader "HDRenderPipeline/Lit"
             ENDHLSL
         }
 
+        // Extracts information for lightmapping, GI (emission, albedo, ...)
+        // This pass it not used during regular rendering.
+        Pass
+        {
+            Name "SPLAT"
+            Tags{ "LightMode" = "Splat" }
+
+            Cull Off
+
+            HLSLPROGRAM
+
+            #define TEXCOORD_SPLAT
+
+            #define SHADERPASS SHADERPASS_DEBUG_VIEW_MATERIAL
+            #include "../../Material/Material.hlsl"
+            #include "ShaderPass/LitSharePass.hlsl"
+            #include "LitData.hlsl"
+            #include "../../ShaderPass/ShaderPassDebugViewMaterial.hlsl"
+
+            ENDHLSL
+        }
+
         Pass
         {
             Name "ShadowCaster"
