@@ -17,7 +17,7 @@ MonoBehaviour:
     enableComputeLightEvaluation: 0
     enableComputeFeatureVariants: 1
     enableClustered: 1
-    enableFptlForOpaqueWhenClustered: 1
+    enableFptlForOpaqueWhenClustered: 0
     enableBigTilePrepass: 1
     diffuseGlobalDimmer: 1
     specularGlobalDimmer: 1
