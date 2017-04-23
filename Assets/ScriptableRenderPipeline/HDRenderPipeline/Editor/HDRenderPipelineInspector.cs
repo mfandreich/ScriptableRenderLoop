@@ -71,7 +71,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             public readonly GUIContent lightingDebugSettings = new GUIContent("Lighting Debug");
             public readonly GUIContent shadowDebugEnable = new GUIContent("Enable Shadows");
             public readonly GUIContent shadowDebugVisualizationMode = new GUIContent("Shadow Maps Debug Mode");
-            public readonly GUIContent shadowDebugVisualizeShadowIndex = new GUIContent("Visualize Shadow Index");            
+            public readonly GUIContent shadowDebugVisualizeShadowIndex = new GUIContent("Visualize Shadow Index");
             public readonly GUIContent lightingDebugOverrideSmoothness = new GUIContent("Override Smoothness");
             public readonly GUIContent lightingDebugOverrideSmoothnessValue = new GUIContent("Smoothness Value");
             public readonly GUIContent lightingDebugAlbedo = new GUIContent("Lighting Debug Albedo");
@@ -252,7 +252,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             else
             {
                 LightingDebugSettingsUI(renderContext, renderpipelineInstance);
-            }            
+            }
 
             EditorGUILayout.Space();
 
@@ -275,11 +275,13 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
                 var num = varyingNames.Length
                     + gbufferNames.Length
-                    + typeof(Builtin.BuiltinData).GetFields().Length * 2       // BuildtinData are duplicated for each material
+                    + typeof(Builtin.BuiltinData).GetFields().Length * 3       // BuildtinData are duplicated for each material
                     + typeof(Lit.SurfaceData).GetFields().Length
                     + typeof(Lit.BSDFData).GetFields().Length
                     + typeof(Unlit.SurfaceData).GetFields().Length
-                    + typeof(Unlit.BSDFData).GetFields().Length;
+                    + typeof(Unlit.BSDFData).GetFields().Length
+                    + typeof(Hair.SurfaceData).GetFields().Length
+                    + typeof(Hair.BSDFData).GetFields().Length;
 
                 styles.debugViewMaterialStrings = new GUIContent[num];
                 styles.debugViewMaterialValues = new int[num];
@@ -292,11 +294,14 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 FillWithProperties(typeof(Lit.SurfaceData), styles.debugViewMaterialStrings, styles.debugViewMaterialValues, false, GetSubNameSpaceName(typeof(Lit.SurfaceData)), ref index);
                 FillWithProperties(typeof(Builtin.BuiltinData), styles.debugViewMaterialStrings, styles.debugViewMaterialValues, false, GetSubNameSpaceName(typeof(Unlit.SurfaceData)), ref index);
                 FillWithProperties(typeof(Unlit.SurfaceData), styles.debugViewMaterialStrings, styles.debugViewMaterialValues, false, GetSubNameSpaceName(typeof(Unlit.SurfaceData)), ref index);
+                FillWithProperties(typeof(Builtin.BuiltinData), styles.debugViewMaterialStrings, styles.debugViewMaterialValues, false, GetSubNameSpaceName(typeof(Hair.SurfaceData)), ref index);
+                FillWithProperties(typeof(Hair.SurfaceData), styles.debugViewMaterialStrings, styles.debugViewMaterialValues, false, GetSubNameSpaceName(typeof(Hair.SurfaceData)), ref index);
 
                 // Engine
                 FillWithPropertiesEnum(typeof(Attributes.DebugViewGbuffer), styles.debugViewMaterialStrings, styles.debugViewMaterialValues, "", true, ref index);
                 FillWithProperties(typeof(Lit.BSDFData), styles.debugViewMaterialStrings, styles.debugViewMaterialValues, true, "", ref index);
                 FillWithProperties(typeof(Unlit.BSDFData), styles.debugViewMaterialStrings, styles.debugViewMaterialValues, true, "", ref index);
+                FillWithProperties(typeof(Hair.BSDFData), styles.debugViewMaterialStrings, styles.debugViewMaterialValues, true, "", ref index);
 
                 styles.isDebugViewMaterialInit = true;
             }
