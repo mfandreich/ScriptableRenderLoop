@@ -13,6 +13,7 @@ void GetBuiltinData(FragInputs input, SurfaceData surfaceData, float alpha, floa
     // This should also handle projective lightmap
     // Note that data input above can be use to sample into lightmap (like normal)
     builtinData.bakeDiffuseLighting = SampleBakedGI(input.positionWS, surfaceData.normalWS, input.texCoord1, input.texCoord2);
+    builtinData.shadowMask = SampleShadowMask(input.texCoord1);
 
     // Emissive Intensity is only use here, but is part of BuiltinData to enforce UI parameters as we want the users to fill one color and one intensity
     builtinData.emissiveIntensity = _EmissiveIntensity; // We still store intensity here so we can reuse it with debug code

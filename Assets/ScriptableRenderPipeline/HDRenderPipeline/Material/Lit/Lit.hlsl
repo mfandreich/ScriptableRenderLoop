@@ -49,6 +49,8 @@ TEXTURE2D_ARRAY(_LtcData); // We pack the 3 Ltc data inside a texture array
 #define LTC_LUT_SCALE  ((LTC_LUT_SIZE - 1) * rcp(LTC_LUT_SIZE))
 #define LTC_LUT_OFFSET (0.5 * rcp(LTC_LUT_SIZE))
 
+TEXTURE2D(_ShadowMaskTexture);
+
 // SSS parameters
 #define SSS_N_PROFILES      8
 #define SSS_UNIT_CONVERSION (1.0 / 300.0)                  // From 1/3 centimeters to meters
@@ -548,6 +550,8 @@ struct PreLightData
     float    ltcGGXFresnelMagnitudeDiff; // The difference of magnitudes of GGX and Fresnel
     float    ltcGGXFresnelMagnitude;
     float    ltcDisneyDiffuseMagnitude;
+
+    float4 shadowMask;
 };
 
 PreLightData GetPreLightData(float3 V, PositionInputs posInput, BSDFData bsdfData)
@@ -606,6 +610,8 @@ PreLightData GetPreLightData(float3 V, PositionInputs posInput, BSDFData bsdfDat
     preLightData.ltcGGXFresnelMagnitudeDiff = ltcMagnitude.r;
     preLightData.ltcGGXFresnelMagnitude     = ltcMagnitude.g;
     preLightData.ltcDisneyDiffuseMagnitude  = ltcMagnitude.b;
+
+    preLightData.shadowMask = LOAD_TEXTURE2D(_ShadowMaskTexture, posInput.unPositionSS);
 
     return preLightData;
 }
@@ -852,6 +858,9 @@ void EvaluateBSDF_Punctual( LightLoopContext lightLoopContext,
 #endif
         shadow = lerp(1.0, shadow, lightData.shadowDimmer);
 
+        float shadowMask = dot(preLightData.shadowMask, lightData.bakedOcclusionMask);
+        shadow = min(shadowMask, shadow);
+
         illuminance *= shadow;
     }
 
@@ -1003,6 +1012,8 @@ void EvaluateBSDF_Projector(LightLoopContext lightLoopContext,
         // We use diffuse lighting for accumulation since it is going to be blurred during the SSS pass.
         diffuseLighting += transmittedLight;
     }
+
+    //diffuseLighting.rgb = preLightData.shadowMask.rgb;
 }
 
 //-----------------------------------------------------------------------------

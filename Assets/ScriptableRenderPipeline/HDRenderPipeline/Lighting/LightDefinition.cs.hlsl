@@ -46,6 +46,7 @@ struct LightData
     float diffuseScale;
     float3 right;
     float specularScale;
+    float4 bakedOcclusionMask;
     float shadowDimmer;
     int shadowIndex;
     int IESIndex;
@@ -147,6 +148,10 @@ float3 GetRight(LightData value)
 float GetSpecularScale(LightData value)
 {
 	return value.specularScale;
+}
+float4 GetBakedOcclusionMask(LightData value)
+{
+    return value.bakedOcclusionMask;
 }
 float GetShadowDimmer(LightData value)
 {

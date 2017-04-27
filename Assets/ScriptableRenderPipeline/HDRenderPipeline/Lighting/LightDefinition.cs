@@ -44,6 +44,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public Vector3 right;
         public float specularScale;
 
+        public Vector4 bakedOcclusionMask;
+
         public float shadowDimmer;
         // index are -1 if not used
         public int shadowIndex;

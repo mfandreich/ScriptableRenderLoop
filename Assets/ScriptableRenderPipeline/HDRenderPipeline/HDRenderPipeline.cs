@@ -251,6 +251,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         readonly int m_CameraSubsurfaceBuffer;
         readonly int m_CameraFilteringBuffer;
         readonly int m_VelocityBuffer;
+        readonly int m_ShadowMaskBuffer;
         readonly int m_DistortionBuffer;
 
         // 'm_CameraColorBuffer' does not contain diffuse lighting of SSS materials until the SSS pass.
@@ -259,6 +260,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         readonly RenderTargetIdentifier m_CameraSubsurfaceBufferRT;
         readonly RenderTargetIdentifier m_CameraFilteringBufferRT;
         readonly RenderTargetIdentifier m_VelocityBufferRT;
+        readonly RenderTargetIdentifier m_ShadowMaskBufferRT;
         readonly RenderTargetIdentifier m_DistortionBufferRT;
 
         private RenderTexture m_CameraDepthStencilBuffer = null;
@@ -317,16 +319,26 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             RenderTextureReadWrite[] RTReadWrite;
             m_LitRenderLoop.GetMaterialGBufferDescription(out RTFormat, out RTReadWrite);
 
-            for (int gbufferIndex = 0; gbufferIndex < m_gbufferManager.gbufferCount; ++gbufferIndex)
+            int gbufferIndex = 0;
+            for (; gbufferIndex < m_gbufferManager.gbufferCount; ++gbufferIndex)
             {
                 m_gbufferManager.SetBufferDescription(gbufferIndex, "_GBufferTexture" + gbufferIndex, RTFormat[gbufferIndex], RTReadWrite[gbufferIndex]);
             }
+
+            m_ShadowMaskBuffer = Shader.PropertyToID("_ShadowMaskTexture");
+            //if (ShaderConfig.s_VelocityInGbuffer == 1)
+            {
+                m_gbufferManager.SetBufferDescription(gbufferIndex++, "_ShadowMaskTexture", Builtin.RenderLoop.GetShadowMaskBufferFormat(), Builtin.RenderLoop.GetShadowMaskBufferReadWrite());
+                m_gbufferManager.gbufferCount++;
+            }
+            m_ShadowMaskBufferRT = new RenderTargetIdentifier(m_ShadowMaskBuffer);
+
 
             m_VelocityBuffer = Shader.PropertyToID("_VelocityTexture");
             if (ShaderConfig.s_VelocityInGbuffer == 1)
             {
                 // If velocity is in GBuffer then it is in the last RT. Assign a different name to it.
-                m_gbufferManager.SetBufferDescription(m_gbufferManager.gbufferCount, "_VelocityTexture", Builtin.RenderLoop.GetVelocityBufferFormat(), Builtin.RenderLoop.GetVelocityBufferReadWrite());
+                m_gbufferManager.SetBufferDescription(gbufferIndex++, "_VelocityTexture", Builtin.RenderLoop.GetVelocityBufferFormat(), Builtin.RenderLoop.GetVelocityBufferReadWrite());
                 m_gbufferManager.gbufferCount++;
             }
             m_VelocityBufferRT = new RenderTargetIdentifier(m_VelocityBuffer);

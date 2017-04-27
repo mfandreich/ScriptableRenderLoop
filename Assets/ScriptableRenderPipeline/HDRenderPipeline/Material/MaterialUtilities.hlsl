@@ -50,7 +50,8 @@ float3 SampleBakedGI(float3 positionWS, float3 normalWS, float2 uvStaticLightmap
                                                         TEXTURE2D_PARAM(unity_LightmapInd, samplerunity_Lightmap),
                                                         uvStaticLightmap, unity_LightmapST, normalWS, true);
         #else
-        bakeDiffuseLighting += SampleSingleLightmap(TEXTURE2D_PARAM(unity_Lightmap, samplerunity_Lightmap), uvStaticLightmap, unity_LightmapST, true);
+        bakeDiffuseLighting += SampleSingleLightmap(TEXTURE2D_PARAM(
+        , samplerunity_Lightmap), uvStaticLightmap, unity_LightmapST, true);
         #endif
     #endif
 
@@ -67,6 +68,17 @@ float3 SampleBakedGI(float3 positionWS, float3 normalWS, float2 uvStaticLightmap
     return bakeDiffuseLighting;
 
 #endif
+}
+
+float4 SampleShadowMask(float2 uvStaticLightmap)
+{
+    float4 result = float4(0.0, 0.0, 0.0, 0.0);
+#if defined(LIGHTMAP_ON) || defined(DYNAMICLIGHTMAP_ON)
+    float2 uv = uvStaticLightmap * unity_LightmapST.xy + unity_LightmapST.zw;
+    result = SAMPLE_TEXTURE2D(unity_ShadowMask, samplerunity_Lightmap, uv);
+#endif
+
+    return result;
 }
 
 float2 CalculateVelocity(float4 positionCS, float4 previousPositionCS)

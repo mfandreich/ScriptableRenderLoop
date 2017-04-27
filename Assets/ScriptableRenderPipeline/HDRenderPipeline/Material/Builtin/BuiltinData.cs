@@ -25,6 +25,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             // at the same time than material information.
             [SurfaceDataAttributes("Bake Diffuse Lighting", false, true)]
             public Vector3 bakeDiffuseLighting; // This is the result of sampling lightmap/lightprobe/proxyvolume
+            [SurfaceDataAttributes("Shadow Mask")]
+            public Vector4 shadowMask;
 
             [SurfaceDataAttributes("Emissive Color", false, true)]
             public Vector3 emissiveColor;
@@ -77,6 +79,16 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             }
 
             public static RenderTextureReadWrite GetDistortionBufferReadWrite()
+            {
+                return RenderTextureReadWrite.Linear;
+            }
+
+            public static RenderTextureFormat GetShadowMaskBufferFormat()
+            {
+                return RenderTextureFormat.ARGB32;
+            }
+
+            public static RenderTextureReadWrite GetShadowMaskBufferReadWrite()
             {
                 return RenderTextureReadWrite.Linear;
             }

@@ -791,6 +791,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 lightData.up = light.light.transform.up;
                 lightData.right = light.light.transform.right;
 
+                lightData.bakedOcclusionMask = light.light.GetBakedOcclusionMask();
+
                 if (lightData.lightType == GPULightType.Spot)
                 {
                     var spotAngle = light.spotAngle;

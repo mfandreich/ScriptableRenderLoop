@@ -181,6 +181,8 @@ SAMPLER2D(samplerunity_Lightmap);
 // Dual or directional lightmap (always used with unity_Lightmap, so can share sampler)
 TEXTURE2D(unity_LightmapInd);
 
+TEXTURE2D(unity_ShadowMask);
+
 // Dynamic GI lightmap
 TEXTURE2D(unity_DynamicLightmap);
 SAMPLER2D(samplerunity_DynamicLightmap);
