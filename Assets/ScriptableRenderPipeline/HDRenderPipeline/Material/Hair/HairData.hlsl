@@ -306,7 +306,11 @@ float GetSurfaceData(FragInputs input, LayerTexCoord layerTexCoord, out SurfaceD
 
     // Perform alha test very early to save performance (a killed pixel will not sample textures)
 #if defined(_ALPHATEST_ON) && !defined(LAYERED_LIT_SHADER)
-    clip(alpha - _AlphaCutoff);
+    #ifdef HAIR_SHADOW
+        clip(alpha - saturate(_AlphaCutoff+0.6));// making the hair shadow thinner
+    #else
+        clip(alpha - _AlphaCutoff);
+    #endif
 #endif
 
     float3 detailNormalTS = float3(0.0, 0.0, 0.0);

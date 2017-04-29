@@ -16,12 +16,10 @@ MonoBehaviour:
   debugDisplaySettings:
     debugOverlayRatio: 0.33
     displayMaterialDebug: 1
-    displayRenderingDebug: 0
-    displayLightingDebug: 0
-    debugDisplayMode: 0
-    materialDebugSettings:
-      debugViewMaterial: 1002
+    displayRenderingDebug: 1
+    displayLightingDebug: 1
     lightingDebugSettings:
+      debugLightingMode: 0
       enableShadows: 1
       shadowDebugMode: 0
       shadowMapIndex: 0
@@ -39,20 +37,15 @@ MonoBehaviour:
     useForwardRenderingOnly: 0
     useDepthPrepass: 0
   sssSettings:
-    numProfiles: 7
+    numProfiles: 2
     profiles:
-    - {fileID: 11400000, guid: d6ee4403015766f4093158d69216c0bf, type: 2}
-    - {fileID: 11400000, guid: 906339bac2066fc4aa22a3652e1283ef, type: 2}
-    - {fileID: 0}
-    - {fileID: 0}
-    - {fileID: 0}
-    - {fileID: 0}
-    - {fileID: 0}
+    - {fileID: 11400000, guid: ad5cfaa261c43ce4e8f177c28d210723, type: 2}
+    - {fileID: 11400000, guid: 1a783144f63560747b4e5a802e88b253, type: 2}
   m_ShadowSettings:
     enabled: 1
     shadowAtlasWidth: 4096
     shadowAtlasHeight: 4096
-    maxShadowDistance: 1000
+    maxShadowDistance: 400
     directionalLightCascadeCount: 4
     directionalLightCascades: {x: 0.05, y: 0.2, z: 0.3}
     directionalLightNearPlaneOffset: 5
