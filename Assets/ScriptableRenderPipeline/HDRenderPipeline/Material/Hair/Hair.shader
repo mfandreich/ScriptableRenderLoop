@@ -41,7 +41,7 @@ Shader "HDRenderPipeline/ExperimentalHair"
 
         [ToggleOff] _DepthOffsetEnable("Depth Offset View space", Float) = 0.0
 
-        [ToggleOff]  _AlphaCutoffEnable("Alpha Cutoff Enable", Float) = 0.0
+        [HideInInspector]_AlphaCutoffEnable("Alpha Cutoff Enable", Float) = 1.0
         _AlphaCutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
 
         _HorizonFade("Horizon fade", Range(0.0, 5.0)) = 1.0
@@ -137,7 +137,6 @@ Shader "HDRenderPipeline/ExperimentalHair"
     //-------------------------------------------------------------------------------------
 
     #include "../../Material/Hair/HairProperties.hlsl"
-
     // All our shaders use same name for entry point
     #pragma vertex Vert
     #pragma fragment Frag
@@ -162,6 +161,7 @@ Shader "HDRenderPipeline/ExperimentalHair"
             HLSLPROGRAM
 
             #define SHADERPASS SHADERPASS_DEPTH_ONLY
+            #define HAIR_SHADOW
             #include "../../Material/Material.hlsl"
             #include "ShaderPass/HairDepthPass.hlsl"
             #include "HairData.hlsl"
@@ -182,6 +182,7 @@ Shader "HDRenderPipeline/ExperimentalHair"
             HLSLPROGRAM
 
             #define SHADERPASS SHADERPASS_DEPTH_ONLY
+            #define HAIR_SHADOW
             #include "../../Material/Material.hlsl"
             #include "ShaderPass/HairDepthPass.hlsl"
             #include "HairData.hlsl"

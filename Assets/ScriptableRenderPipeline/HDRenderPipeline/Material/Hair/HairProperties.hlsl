@@ -18,6 +18,13 @@ float _EmissiveIntensity;
 // TODO: Fix the code in legacy unity so we can customize the beahvior for GI
 float3 _EmissionColor;
 
+// Wind
+float _InitialBend;
+float _Stiffness;
+float _Drag;
+float _ShiverDrag;
+float _ShiverDirectionality;
+
 // Set of users variables
 float4 _DiffuseColor;
 TEXTURE2D(_DiffuseColorMap);
