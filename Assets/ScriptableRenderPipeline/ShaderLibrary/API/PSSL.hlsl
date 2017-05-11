@@ -18,6 +18,9 @@
 #define FRONT_FACE_TYPE bool
 #define IS_FRONT_VFACE(VAL, FRONT, BACK) ((VAL) ? (FRONT) : (BACK))
 
+#define DEFAULT_UNITY_VERTEX_INPUT_INSTANCE_ID uint instanceID;
+#define UNITY_GET_INSTANCE_ID(input) _GETINSTANCEID(input)
+
 #define CBUFFER_START(name) cbuffer name {
 #define CBUFFER_END };
 

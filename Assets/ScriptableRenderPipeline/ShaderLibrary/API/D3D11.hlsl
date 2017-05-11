@@ -9,6 +9,11 @@
 #define FRONT_FACE_TYPE bool
 #define IS_FRONT_VFACE(VAL, FRONT, BACK) ((VAL) ? (FRONT) : (BACK))
 
+#define UNITY_SUPPORT_INSTANCING
+#define UNITY_SUPPORT_STEREO_INSTANCING
+#define DEFAULT_UNITY_VERTEX_INPUT_INSTANCE_ID uint instanceID : SV_InstanceID;
+#define UNITY_GET_INSTANCE_ID(input) input.instanceID
+
 #define CBUFFER_START(name) cbuffer name {
 #define CBUFFER_END };
 
