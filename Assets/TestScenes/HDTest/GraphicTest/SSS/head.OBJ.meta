@@ -1,9 +1,9 @@
 fileFormatVersion: 2
-guid: 2b46db496f27398459cf881becf5763a
-timeCreated: 1493290944
+guid: c567c8ceaf4b2a640926180289847290
+timeCreated: 1494507413
 licenseType: Pro
 ModelImporter:
-  serializedVersion: 20
+  serializedVersion: 21
   fileIDToRecycleName:
     100000: Group12
     100002: Group14
@@ -94,6 +94,7 @@ ModelImporter:
     animationScaleError: 0.5
     animationWrapMode: 0
     extraExposedTransformPaths: []
+    extraUserProperties: []
     clipAnimations: []
     isReadable: 1
   meshes:
@@ -101,7 +102,7 @@ ModelImporter:
     globalScale: 1
     meshCompression: 0
     addColliders: 0
-    importVisibility: 0
+    importVisibility: 1
     importBlendShapes: 1
     importCameras: 1
     importLights: 1

@@ -19,10 +19,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
     [Flags]
     public enum StencilBits
     {
-        None      = 0,
-        SSS       = 0 + Lit.MaterialId.LitSSS,       // 1
-        Standard  = 2 + Lit.MaterialId.LitStandard,  // 2
-        All       = 255 // 0xff
+        None   = 0,                         // 0
+        SSS    = 1 + Lit.MaterialId.LitSSS, // 1
+        NonSSS = 2 + Lit.MaterialId.LitSSS, // 2
+        All    = 255                        // 0xFF
     }
 
     public class Utilities
@@ -379,6 +379,18 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             // we pass the first color target as the depth target. If it has 0 depth bits,
             // no depth target ends up being bound.
             DrawFullScreen(commandBuffer, material, camera, colorBuffers, colorBuffers[0], properties, shaderPassID);
+        }
+
+        // Helper to help to display debug info on screen
+        public static void NextOverlayCoord(ref float x, ref float y, float overlaySize, float width)
+        {
+            x += overlaySize;
+            // Go to next line if it goes outside the screen.
+            if (x + overlaySize > width)
+            {
+                x = 0;
+                y -= overlaySize;
+            }
         }
     }
 }

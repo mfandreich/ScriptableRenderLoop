@@ -120,6 +120,66 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             }
         }
 
+        [SerializeField] private Material m_DefaultDiffuseMaterial;
+        [SerializeField] private Shader m_DefaultShader;
+
+        public Material DefaultDiffuseMaterial
+        {
+            get { return m_DefaultDiffuseMaterial; }
+            private set { m_DefaultDiffuseMaterial = value; }
+        }
+
+        public Shader DefaultShader
+        {
+            get { return m_DefaultShader; }
+            private set { m_DefaultShader = value; }
+        }
+
+        public override Shader GetDefaultShader()
+        {
+            return m_DefaultShader;
+        }
+
+        public override Material GetDefaultMaterial()
+        {
+            return m_DefaultDiffuseMaterial;
+        }
+
+        public override Material GetDefaultParticleMaterial()
+        {
+            return m_DefaultDiffuseMaterial;
+        }
+
+        public override Material GetDefaultLineMaterial()
+        {
+            return m_DefaultDiffuseMaterial;
+        }
+
+        public override Material GetDefaultTerrainMaterial()
+        {
+            return m_DefaultDiffuseMaterial;
+        }
+
+        public override Material GetDefaultUIMaterial()
+        {
+            return m_DefaultDiffuseMaterial;
+        }
+
+        public override Material GetDefaultUIOverdrawMaterial()
+        {
+            return m_DefaultDiffuseMaterial;
+        }
+
+        public override Material GetDefaultUIETC1SupportedMaterial()
+        {
+            return m_DefaultDiffuseMaterial;
+        }
+
+        public override Material GetDefault2DMaterial()
+        {
+            return m_DefaultDiffuseMaterial;
+        }
+
         public void ApplyDebugDisplaySettings()
         {
             m_ShadowSettings.enabled = debugDisplaySettings.lightingDebugSettings.enableShadows;
@@ -243,7 +303,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         readonly Material m_FilterSubsurfaceScattering;
         readonly Material m_FilterAndCombineSubsurfaceScattering;
 
-        private Material m_DebugDisplayShadowMap;
         private Material m_DebugViewMaterialGBuffer;
         private Material m_DebugDisplayLatlong;
 
@@ -274,10 +333,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         int m_CurrentWidth;
         int m_CurrentHeight;
 
-        ShadowRenderPass m_ShadowPass;
-        ShadowOutput m_ShadowsResult = new ShadowOutput();
-
-        public int GetCurrentShadowCount() { return m_ShadowsResult.shadowLights == null ? 0 : m_ShadowsResult.shadowLights.Length; }
+        public int GetCurrentShadowCount() { return m_LightLoop.GetCurrentShadowCount(); }
 
         readonly SkyManager m_SkyManager = new SkyManager();
         private readonly BaseLightLoop m_LightLoop;
@@ -312,8 +368,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             m_FilterAndCombineSubsurfaceScattering.SetFloat("_DstBlend", (float)BlendMode.One);
 
             InitializeDebugMaterials();
-
-            m_ShadowPass = new ShadowRenderPass(owner.shadowSettings);
 
             // Init Gbuffer description
             m_gbufferManager.gbufferCount = m_LitRenderLoop.GetMaterialGBufferCount();
@@ -354,9 +408,14 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         void InitializeDebugMaterials()
         {
-            m_DebugDisplayShadowMap = Utilities.CreateEngineMaterial("Hidden/HDRenderPipeline/DebugDisplayShadowMap");
             m_DebugViewMaterialGBuffer = Utilities.CreateEngineMaterial("Hidden/HDRenderPipeline/DebugViewMaterialGBuffer");
             m_DebugDisplayLatlong = Utilities.CreateEngineMaterial("Hidden/HDRenderPipeline/DebugDisplayLatlong");
+        }
+
+        public void OnSceneLoad()
+        {
+            // Recreate the textures which went NULL, and set 'isInit' to 'false'.
+            m_LitRenderLoop.Build();
         }
 
         public override void Dispose()
@@ -368,7 +427,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             m_LitRenderLoop.Cleanup();
 
-            Utilities.Destroy(m_DebugDisplayShadowMap);
             Utilities.Destroy(m_DebugViewMaterialGBuffer);
             Utilities.Destroy(m_DebugDisplayLatlong);
 
@@ -470,7 +528,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             // Broadcast SSS parameters to all shaders.
             Shader.SetGlobalInt("_EnableSSS", debugDisplaySettings.renderingDebugSettings.enableSSS ? 1 : 0);
-            Shader.SetGlobalInt("_TransmissionFlags",   sssParameters.transmissionFlags);
+            cmd.SetGlobalFloatArray("_TransmissionType",   sssParameters.transmissionType);
             Shader.SetGlobalInt("_TexturingModeFlags",  sssParameters.texturingModeFlags);
             cmd.SetGlobalFloatArray("_ThicknessRemaps", sssParameters.thicknessRemaps);
             cmd.SetGlobalVectorArray("_TintColors",     sssParameters.tintColors);
@@ -556,7 +614,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 return;
             }
 
-            m_ShadowPass.UpdateCullingParameters(ref cullingParams);
+            m_LightLoop.UpdateCullingParameters( ref cullingParams );
 
             var cullResults = CullResults.Cull(ref cullingParams, renderContext);
 
@@ -576,7 +634,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             // Forward opaque with deferred/cluster tile require that we fill the depth buffer
             // correctly to build the light list.
-            // TODO: avoid double lighting by tagging stencil or gbuffer that we must not lit.
             RenderForwardOnlyOpaqueDepthPrepass(cullResults, camera, renderContext);
             RenderGBuffer(cullResults, camera, renderContext);
 
@@ -593,18 +650,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             }
             else
             {
-                using (new Utilities.ProfilingSample("Shadow", renderContext))
-                {
-                    m_ShadowPass.Render(renderContext, cullResults, out m_ShadowsResult);
-                }
-
-                renderContext.SetupCameraProperties(camera); // Need to recall SetupCameraProperties after m_ShadowPass.Render
-
                 if (m_LightLoop != null)
                 {
-                    using (new Utilities.ProfilingSample("Build Light list", renderContext))
+                    using (new Utilities.ProfilingSample("Build Light list and render shadows", renderContext))
                     {
-                        m_LightLoop.PrepareLightsForGPU(m_Owner.shadowSettings, cullResults, camera, ref m_ShadowsResult);
+                        m_LightLoop.PrepareLightsForGPU(m_Owner.shadowSettings, cullResults, camera);
                         m_LightLoop.RenderShadows(renderContext, cullResults);
                         renderContext.SetupCameraProperties(camera); // Need to recall SetupCameraProperties after m_ShadowPass.Render
                         m_LightLoop.BuildGPULightLists(camera, renderContext, m_CameraDepthStencilBufferRT); // TODO: Use async compute here to run light culling during shadow
@@ -828,15 +878,16 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             m_FilterSubsurfaceScattering.SetVectorArray("_FilterKernels", sssParameters.filterKernels);
             m_FilterSubsurfaceScattering.SetVectorArray("_HalfRcpWeightedVariances", sssParameters.halfRcpWeightedVariances);
             cmd.SetGlobalTexture("_IrradianceSource", m_CameraSubsurfaceBufferRT);
-            Utilities.DrawFullScreen(cmd, m_FilterSubsurfaceScattering, hdCamera,
-                m_CameraFilteringBufferRT, m_CameraDepthStencilBufferRT);
+            Utilities.DrawFullScreen(cmd, m_FilterSubsurfaceScattering, hdCamera, m_CameraFilteringBufferRT, m_CameraDepthStencilBufferRT);
+
+            // when recombining the lighting, we apply albedo. This need to be modified in case of debug display with diffuse lighting only.
+            Utilities.SetKeyword(m_FilterAndCombineSubsurfaceScattering, "DEBUG_DISPLAY", debugDisplaySettings.IsDebugDisplayEnabled());
 
             // Perform the horizontal SSS filtering pass, and combine diffuse and specular lighting.
             m_FilterAndCombineSubsurfaceScattering.SetVectorArray("_FilterKernels", sssParameters.filterKernels);
             m_FilterAndCombineSubsurfaceScattering.SetVectorArray("_HalfRcpWeightedVariances", sssParameters.halfRcpWeightedVariances);
             cmd.SetGlobalTexture("_IrradianceSource", m_CameraFilteringBufferRT);
-            Utilities.DrawFullScreen(cmd, m_FilterAndCombineSubsurfaceScattering, hdCamera,
-                m_CameraColorBufferRT, m_CameraDepthStencilBufferRT);
+            Utilities.DrawFullScreen(cmd, m_FilterAndCombineSubsurfaceScattering, hdCamera, m_CameraColorBufferRT, m_CameraDepthStencilBufferRT);
 
             context.ExecuteCommandBuffer(cmd);
             cmd.Dispose();
@@ -981,16 +1032,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             }
         }
 
-        void NextOverlayCoord(ref float x, ref float y, float overlaySize, float width)
-        {
-            x += overlaySize;
-            // Go to next line if it goes outside the screen.
-            if (x + overlaySize > width)
-            {
-                x = 0;
-                y -= overlaySize;
-            }
-        }
+
 
         void RenderDebugOverlay(Camera camera, ScriptableRenderContext renderContext)
         {
@@ -1010,40 +1052,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             LightingDebugSettings lightingDebug = debugDisplaySettings.lightingDebugSettings;
 
-            if (lightingDebug.shadowDebugMode != ShadowMapDebugMode.None)
-            {
-                if (lightingDebug.shadowDebugMode == ShadowMapDebugMode.VisualizeShadowMap)
-                {
-                    uint visualizeShadowIndex = Math.Min(lightingDebug.shadowMapIndex, (uint)(GetCurrentShadowCount() - 1));
-                    ShadowLight shadowLight = m_ShadowsResult.shadowLights[visualizeShadowIndex];
-                    for (int slice = 0; slice < shadowLight.shadowSliceCount; ++slice)
-                    {
-                        ShadowSliceData sliceData = m_ShadowsResult.shadowSlices[shadowLight.shadowSliceIndex + slice];
-
-                        Vector4 texcoordScaleBias = new Vector4((float)sliceData.shadowResolution / m_Owner.shadowSettings.shadowAtlasWidth,
-                                (float)sliceData.shadowResolution / m_Owner.shadowSettings.shadowAtlasHeight,
-                                (float)sliceData.atlasX / m_Owner.shadowSettings.shadowAtlasWidth,
-                                (float)sliceData.atlasY / m_Owner.shadowSettings.shadowAtlasHeight);
-
-                        propertyBlock.SetVector("_TextureScaleBias", texcoordScaleBias);
-
-                        debugCB.SetViewport(new Rect(x, y, overlaySize, overlaySize));
-                        debugCB.DrawProcedural(Matrix4x4.identity, m_DebugDisplayShadowMap, 0, MeshTopology.Triangles, 3, 1, propertyBlock);
-
-                        NextOverlayCoord(ref x, ref y, overlaySize, camera.pixelWidth);
-                    }
-                }
-                else if (lightingDebug.shadowDebugMode == ShadowMapDebugMode.VisualizeAtlas)
-                {
-                    propertyBlock.SetVector("_TextureScaleBias", new Vector4(1.0f, 1.0f, 0.0f, 0.0f));
-
-                    debugCB.SetViewport(new Rect(x, y, overlaySize, overlaySize));
-                    debugCB.DrawProcedural(Matrix4x4.identity, m_DebugDisplayShadowMap, 0, MeshTopology.Triangles, 3, 1, propertyBlock);
-
-                    NextOverlayCoord(ref x, ref y, overlaySize, camera.pixelWidth);
-                }
-            }
-
             if (lightingDebug.displaySkyReflection)
             {
                 Texture skyReflection = m_SkyManager.skyReflection;
@@ -1051,18 +1059,13 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 propertyBlock.SetFloat("_Mipmap", lightingDebug.skyReflectionMipmap);
                 debugCB.SetViewport(new Rect(x, y, overlaySize, overlaySize));
                 debugCB.DrawProcedural(Matrix4x4.identity, m_DebugDisplayLatlong, 0, MeshTopology.Triangles, 3, 1, propertyBlock);
-                NextOverlayCoord(ref x, ref y, overlaySize, camera.pixelWidth);
+                Utilities.NextOverlayCoord(ref x, ref y, overlaySize, camera.pixelWidth);
             }
 
             renderContext.ExecuteCommandBuffer(debugCB);
-        }
 
-        // Function to prepare light structure for GPU lighting
-        void PrepareLightsForGPU(ShadowSettings shadowSettings, CullResults cullResults, Camera camera, ref ShadowOutput shadowOutput)
-        {
-            // build per tile light lists
             if (m_LightLoop != null)
-                m_LightLoop.PrepareLightsForGPU(shadowSettings, cullResults, camera, ref shadowOutput);
+                m_LightLoop.RenderDebugOverlay(camera, renderContext, debugDisplaySettings, ref x, ref y, overlaySize, camera.pixelWidth);
         }
 
         void InitAndClearBuffer(Camera camera, ScriptableRenderContext renderContext)

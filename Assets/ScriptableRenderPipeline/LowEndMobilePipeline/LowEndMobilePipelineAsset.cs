@@ -61,13 +61,19 @@ namespace UnityEngine.Experimental.Rendering.LowendMobile
 
         [SerializeField] private float m_ShadowDistance = 50.0f;
 
-        [SerializeField] private float m_ShadowBias = 0.0005f;
+        [SerializeField] private float m_MinShadowNormalBias = 0.0005f;
+
+        [SerializeField] private float m_ShadowNormalBias = 0.05f;
 
         [SerializeField] private ShadowCascades m_ShadowCascades = ShadowCascades.NO_CASCADES;
 
         [SerializeField] private float m_Cascade2Split = 0.25f;
 
         [SerializeField] private Vector3 m_Cascade4Split = new Vector3(0.067f, 0.2f, 0.467f);
+
+        [SerializeField] private Material m_DefaultDiffuseMaterial;
+
+        [SerializeField] private Shader m_DefaultShader;
 
         public int MaxSupportedPixelLights
         {
@@ -117,10 +123,16 @@ namespace UnityEngine.Experimental.Rendering.LowendMobile
             private set { m_ShadowDistance = value; }
         }
 
-        public float ShadowBias
+		public float ShadowMinNormalBias
         {
-            get { return m_ShadowBias; }
-            private set { m_ShadowBias = value; }
+            get { return m_MinShadowNormalBias; }
+            private set { m_MinShadowNormalBias = value; }
+        }
+
+        public float ShadowNormalBias
+        {
+            get { return m_ShadowNormalBias; }
+            private set { m_ShadowNormalBias = value; }
         }
 
         public int CascadeCount
@@ -141,6 +153,61 @@ namespace UnityEngine.Experimental.Rendering.LowendMobile
             private set { m_Cascade4Split = value; }
         }
 
+        public Material DefaultDiffuseMaterial
+        {
+            get { return m_DefaultDiffuseMaterial; }
+            private set { m_DefaultDiffuseMaterial = value; }
+        }
+
+        public Shader DefaultShader
+        {
+            get { return m_DefaultShader; }
+            private set { m_DefaultShader = value; }
+        }
+
         #endregion
+        public override Material GetDefaultMaterial()
+        {
+            return m_DefaultDiffuseMaterial;
+        }
+
+        public override Material GetDefaultParticleMaterial()
+        {
+            return m_DefaultDiffuseMaterial;
+        }
+
+        public override Material GetDefaultLineMaterial()
+        {
+            return m_DefaultDiffuseMaterial;
+        }
+
+        public override Material GetDefaultTerrainMaterial()
+        {
+            return m_DefaultDiffuseMaterial;
+        }
+
+        public override Material GetDefaultUIMaterial()
+        {
+            return m_DefaultDiffuseMaterial;
+        }
+
+        public override Material GetDefaultUIOverdrawMaterial()
+        {
+            return m_DefaultDiffuseMaterial;
+        }
+
+        public override Material GetDefaultUIETC1SupportedMaterial()
+        {
+            return m_DefaultDiffuseMaterial;
+        }
+
+        public override Material GetDefault2DMaterial()
+        {
+            return m_DefaultDiffuseMaterial;
+        }
+        public override Shader GetDefaultShader()
+        {
+            return m_DefaultShader;
+        }
     }
 }

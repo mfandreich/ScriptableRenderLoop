@@ -12,6 +12,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
     {
         private class Styles
         {
+            public static GUIContent defaults = new GUIContent("Defaults");
+            public static GUIContent defaultDiffuseMaterial = new GUIContent("Default Diffuse Material", "Material to use when creating objects");
+            public static GUIContent defaultShader = new GUIContent("Default Shader", "Shader to use when creating materials");
+
             public readonly GUIContent settingsLabel = new GUIContent("Settings");
 
             // Rendering Settings
@@ -33,7 +37,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             public readonly GUIContent shadowsAtlasHeight = new GUIContent("Atlas height");
 
             // Subsurface Scattering Settings
-            public readonly GUIContent[] sssProfiles             = new GUIContent[SubsurfaceScatteringSettings.maxNumProfiles] { new GUIContent("Profile #0"), new GUIContent("Profile #1"), new GUIContent("Profile #2"), new GUIContent("Profile #3"), new GUIContent("Profile #4"), new GUIContent("Profile #5"), new GUIContent("Profile #6"), new GUIContent("Profile #7") };
+            public readonly GUIContent[] sssProfiles             = new GUIContent[SSSConstants.SSS_PROFILES_MAX] { new GUIContent("Profile #0"), new GUIContent("Profile #1"), new GUIContent("Profile #2"), new GUIContent("Profile #3"), new GUIContent("Profile #4"), new GUIContent("Profile #5"), new GUIContent("Profile #6"), new GUIContent("Profile #7") };
             public readonly GUIContent   sssNumProfiles          = new GUIContent("Number of profiles");
 
             // Tile pass Settings
@@ -93,6 +97,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             }
         }
 
+        private SerializedProperty m_DefaultDiffuseMaterial;
+        private SerializedProperty m_DefaultShader;
+
         // Display Debug
         SerializedProperty m_ShowMaterialDebug = null;
         SerializedProperty m_ShowLightingDebug = null;
@@ -125,6 +132,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         private void InitializeProperties()
         {
+            m_DefaultDiffuseMaterial = serializedObject.FindProperty("m_DefaultDiffuseMaterial");
+            m_DefaultShader = serializedObject.FindProperty("m_DefaultShader");
+
             // DebugDisplay debug
             m_DebugOverlayRatio = FindProperty(x => x.debugDisplaySettings.debugOverlayRatio);
             m_ShowLightingDebug = FindProperty(x => x.debugDisplaySettings.displayLightingDebug);
@@ -263,7 +273,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             EditorGUILayout.PropertyField(m_NumProfiles, styles.sssNumProfiles);
 
-            for (int i = 0, n = Math.Min(m_Profiles.arraySize, SubsurfaceScatteringSettings.maxNumProfiles); i < n; i++)
+            for (int i = 0, n = Math.Min(m_Profiles.arraySize, SSSConstants.SSS_PROFILES_MAX); i < n; i++)
             {
                 SerializedProperty profile = m_Profiles.GetArrayElementAtIndex(i);
                 EditorGUILayout.PropertyField(profile, styles.sssProfiles[i]);
@@ -471,6 +481,12 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 return;
 
             serializedObject.Update();
+
+            EditorGUILayout.LabelField(Styles.defaults, EditorStyles.boldLabel);
+            EditorGUI.indentLevel++;
+            EditorGUILayout.PropertyField(m_DefaultDiffuseMaterial, Styles.defaultDiffuseMaterial);
+            EditorGUILayout.PropertyField(m_DefaultShader, Styles.defaultShader);
+            EditorGUI.indentLevel--;
 
             DebuggingUI(renderContext, renderpipelineInstance);
             SettingsUI(renderContext);
