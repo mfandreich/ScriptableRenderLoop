@@ -16,13 +16,8 @@ MonoBehaviour:
   debugDisplaySettings:
     debugOverlayRatio: 0.33
     displayMaterialDebug: 1
-<<<<<<< HEAD
-    displayRenderingDebug: 1
-    displayLightingDebug: 1
-=======
     displayRenderingDebug: 0
     displayLightingDebug: 0
->>>>>>> refs/remotes/origin/master
     lightingDebugSettings:
       debugLightingMode: 0
       enableShadows: 1
