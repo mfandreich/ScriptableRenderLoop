@@ -16,8 +16,13 @@ MonoBehaviour:
   debugDisplaySettings:
     debugOverlayRatio: 0.33
     displayMaterialDebug: 1
+<<<<<<< HEAD
     displayRenderingDebug: 1
     displayLightingDebug: 1
+=======
+    displayRenderingDebug: 0
+    displayLightingDebug: 0
+>>>>>>> refs/remotes/origin/master
     lightingDebugSettings:
       debugLightingMode: 0
       enableShadows: 1
@@ -61,3 +66,6 @@ MonoBehaviour:
     m_ShadowCascadeSplit2: 0.3
     m_ShadowNearPlaneOffset: 5
   m_SkySettings: {fileID: 0}
+  m_DefaultDiffuseMaterial: {fileID: 2100000, guid: 73c176f402d2c2f4d929aa5da7585d17,
+    type: 2}
+  m_DefaultShader: {fileID: 4800000, guid: 6e4ae4064600d784cac1e41a9e6f2e59, type: 3}
