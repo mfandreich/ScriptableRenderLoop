@@ -307,9 +307,12 @@ float GetSurfaceData(FragInputs input, LayerTexCoord layerTexCoord, out SurfaceD
     // Perform alha test very early to save performance (a killed pixel will not sample textures)
 #if defined(_ALPHATEST_ON) && !defined(LAYERED_LIT_SHADER)
     #ifdef HAIR_SHADOW
-        clip(alpha - saturate(_AlphaCutoff+0.6));// making the hair shadow thinner
+    clip(alpha - _AlphaCutoffShadow); // Let artists make hair shadow thiner
+    #elif defined(HAIR_TRANSPARENT_DEPTH_WRITE)
+    alpha = alpha > _AlphaCutoffOpacityThreshold ? 1.0 : alpha;
+    clip(alpha - _AlphaCutoffPrepass); // Let artists make prepass cutout thinner
     #else
-        clip(alpha - _AlphaCutoff);
+    clip(alpha - _AlphaCutoff);
     #endif
 #endif
 
