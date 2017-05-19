@@ -396,7 +396,7 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     LODDitheringTransition(posInput.unPositionSS, unity_LODFade.y); // Note that we pass the quantized value of LOD fade
 #endif
 
-    ApplyDoubleSidedFlipOrMirror(input); // Apply double sided flip on the vertex normal
+    //ApplyDoubleSidedFlipOrMirror(input); // flipping is not working, so comment this off for hair( Temp )
 
     LayerTexCoord layerTexCoord;
     ZERO_INITIALIZE(LayerTexCoord, layerTexCoord);
