@@ -37,15 +37,10 @@ MonoBehaviour:
     useForwardRenderingOnly: 0
     useDepthPrepass: 0
   sssSettings:
-    numProfiles: 7
+    numProfiles: 2
     profiles:
-    - {fileID: 11400000, guid: d6ee4403015766f4093158d69216c0bf, type: 2}
-    - {fileID: 11400000, guid: 906339bac2066fc4aa22a3652e1283ef, type: 2}
-    - {fileID: 0}
-    - {fileID: 0}
-    - {fileID: 0}
-    - {fileID: 0}
-    - {fileID: 0}
+    - {fileID: 11400000, guid: 1a783144f63560747b4e5a802e88b253, type: 2}
+    - {fileID: 11400000, guid: ad5cfaa261c43ce4e8f177c28d210723, type: 2}
   m_ShadowSettings:
     enabled: 1
     shadowAtlasWidth: 4096
