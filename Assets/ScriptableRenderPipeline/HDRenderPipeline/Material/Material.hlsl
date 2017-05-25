@@ -31,6 +31,8 @@
 //#include "Iridescence/Iridescence.hlsl"
 #elif defined(UNITY_MATERIAL_HAIR)
 #include "Hair/Hair.hlsl"
+#elif defined(UNITY_MATERIAL_CHARACTER)
+#include "Character/Character.hlsl"
 #endif
 
 //-----------------------------------------------------------------------------

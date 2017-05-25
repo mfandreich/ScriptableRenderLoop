@@ -14,6 +14,7 @@
 #define DEBUGVIEW_HAIR_SURFACEDATA_AMBIENT_OCCLUSION (2574)
 #define DEBUGVIEW_HAIR_SURFACEDATA_TANGENT_WS (2575)
 #define DEBUGVIEW_HAIR_SURFACEDATA_ANISOTROPY (2576)
+#define DEBUGVIEW_HAIR_SURFACEDATA_IS_FRONT_FACE (2577)
 
 //
 // UnityEngine.Experimental.Rendering.HDPipeline.Hair.BSDFData:  static fields
@@ -29,6 +30,7 @@
 #define DEBUGVIEW_HAIR_BSDFDATA_ROUGHNESS_T (2608)
 #define DEBUGVIEW_HAIR_BSDFDATA_ROUGHNESS_B (2609)
 #define DEBUGVIEW_HAIR_BSDFDATA_ANISOTROPY (2610)
+#define DEBUGVIEW_HAIR_BSDFDATA_IS_FRONT_FACE (2611)
 
 // Generated from UnityEngine.Experimental.Rendering.HDPipeline.Hair.SurfaceData
 // PackingRules = Exact
@@ -41,6 +43,7 @@ struct SurfaceData
     float ambientOcclusion;
     float3 tangentWS;
     float anisotropy;
+    bool isFrontFace;
 };
 
 // Generated from UnityEngine.Experimental.Rendering.HDPipeline.Hair.BSDFData
@@ -58,6 +61,7 @@ struct BSDFData
     float roughnessT;
     float roughnessB;
     float anisotropy;
+    bool isFrontFace;
 };
 
 //
@@ -88,6 +92,9 @@ void GetGeneratedSurfaceDataDebug(uint paramId, SurfaceData surfacedata, inout f
             break;
         case DEBUGVIEW_HAIR_SURFACEDATA_ANISOTROPY:
             result = surfacedata.anisotropy.xxx;
+            break;
+        case DEBUGVIEW_HAIR_SURFACEDATA_IS_FRONT_FACE:
+            result = (surfacedata.isFrontFace) ? float3(1.0, 1.0, 1.0) : float3(0.0, 0.0, 0.0);
             break;
     }
 }
@@ -132,6 +139,9 @@ void GetGeneratedBSDFDataDebug(uint paramId, BSDFData bsdfdata, inout float3 res
             break;
         case DEBUGVIEW_HAIR_BSDFDATA_ANISOTROPY:
             result = bsdfdata.anisotropy.xxx;
+            break;
+        case DEBUGVIEW_HAIR_BSDFDATA_IS_FRONT_FACE:
+            result = (bsdfdata.isFrontFace) ? float3(1.0, 1.0, 1.0) : float3(0.0, 0.0, 0.0);
             break;
     }
 }

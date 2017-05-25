@@ -1,9 +1,4 @@
-//-----------------------------------------------------------------------------
-// SurfaceData and BSDFData
-//-----------------------------------------------------------------------------
-
-// SurfaceData is define in Lit.cs which generate Lit.cs.hlsl
-#include "Hair.cs.hlsl"
+#include "Character.cs.hlsl"
 
 SamplerState ltc_linear_clamp_sampler;
 // TODO: This one should be set into a constant Buffer at pass frequency (with _Screensize)
@@ -63,9 +58,7 @@ BSDFData ConvertSurfaceDataToBSDFData(SurfaceData surfaceData)
     bsdfData.diffuseColor = surfaceData.diffuseColor;
     bsdfData.specularOcclusion = surfaceData.specularOcclusion;
     bsdfData.normalWS = surfaceData.normalWS;
-
-    //NOTE: On Hair UI side, we use slider for roughness. So not necesarry to invert.
-    bsdfData.perceptualRoughness = surfaceData.perceptualSmoothness;//PerceptualSmoothnessToPerceptualRoughness(surfaceData.perceptualSmoothness);
+    bsdfData.perceptualRoughness = PerceptualSmoothnessToPerceptualRoughness(surfaceData.perceptualSmoothness);
     bsdfData.roughness = PerceptualRoughnessToRoughness(bsdfData.perceptualRoughness);
 
     bsdfData.fresnel0 = 0.04;
@@ -74,8 +67,6 @@ BSDFData ConvertSurfaceDataToBSDFData(SurfaceData surfaceData)
     bsdfData.bitangentWS = cross(surfaceData.normalWS, surfaceData.tangentWS);
     ConvertAnisotropyToRoughness(bsdfData.roughness, surfaceData.anisotropy, bsdfData.roughnessT, bsdfData.roughnessB);
     bsdfData.anisotropy = surfaceData.anisotropy;
-
-	bsdfData.isFrontFace = surfaceData.isFrontFace;
 
     ApplyDebugToBSDFData(bsdfData);
 
@@ -167,13 +158,6 @@ float3 GetBakedDiffuseLigthing(SurfaceData surfaceData, BuiltinData builtinData,
 // HAS_LIGHTLOOP is define in Lighting.hlsl
 //-----------------------------------------------------------------------------
 
-
-//http://web.engr.oregonstate.edu/~mjb/cs519/Projects/Papers/HairRendering.pdf
-float3 ShiftTangent(float3 T, float3 N, float shift){
-    float3 shiftedT = T + shift * N;
-    return normalize(shiftedT);
-}
-
 #ifdef HAS_LIGHTLOOP
 
 //-----------------------------------------------------------------------------
@@ -191,24 +175,19 @@ void BSDF(  float3 V, float3 L, float3 positionWS, PreLightData preLightData, BS
     float NdotH    = saturate((NdotL + NdotV) * invLenLV);
     float LdotH    = saturate(invLenLV + invLenLV * LdotV);
 
-    //float3 F = F_Schlick(bsdfData.fresnel0, LdotH);
+    float3 F = F_Schlick(bsdfData.fresnel0, LdotH);
 
     float Vis;
     float D;
-
-    //Must shift with bitangent and not tangent?
-    float3 B1 = ShiftTangent(bsdfData.bitangentWS, bsdfData.normalWS, _PrimarySpecularShift);
-
     // TODO: this way of handling aniso may not be efficient, or maybe with material classification, need to check perf here
     // Maybe always using aniso maybe a win ?
+
     float3 H = (L + V) * invLenLV;
     // For anisotropy we must not saturate these values
-
-
     float TdotH = dot(bsdfData.tangentWS, H);
     float TdotL = dot(bsdfData.tangentWS, L);
-    float BdotH = dot(B1, H);
-    float BdotL = dot(B1, L);
+    float BdotH = dot(bsdfData.bitangentWS, H);
+    float BdotL = dot(bsdfData.bitangentWS, L);
 
     bsdfData.roughnessT = ClampRoughnessForAnalyticalLights(bsdfData.roughnessT);
     bsdfData.roughnessB = ClampRoughnessForAnalyticalLights(bsdfData.roughnessB);
@@ -219,10 +198,10 @@ void BSDF(  float3 V, float3 L, float3 positionWS, PreLightData preLightData, BS
 
     D = D_GGXAniso(TdotH, BdotH, NdotH, bsdfData.roughnessT, bsdfData.roughnessB);
 
-    specularLighting = 0.4*bsdfData.specularOcclusion*_PrimarySpecular*D;// (Vis * D);
-	specularLighting *= (bsdfData.isFrontFace ? 1.0 : 0.0); //Disable backfacing specular for now. Look into having a flipped normal entirely.
+    specularLighting = F * (Vis * D);
 
-    float  diffuseTerm = saturate(lerp(_Scatter, 1.0, NdotL)); //Lambert();
+    float  diffuseTerm = Lambert();
+
     diffuseLighting = bsdfData.diffuseColor * diffuseTerm;
 }
 
