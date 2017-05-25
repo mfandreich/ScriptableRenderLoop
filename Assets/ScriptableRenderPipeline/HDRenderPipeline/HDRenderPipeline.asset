@@ -39,13 +39,13 @@ MonoBehaviour:
   sssSettings:
     numProfiles: 2
     profiles:
-    - {fileID: 0}
-    - {fileID: 0}
+    - {fileID: 11400000, guid: 1a783144f63560747b4e5a802e88b253, type: 2}
+    - {fileID: 11400000, guid: ad5cfaa261c43ce4e8f177c28d210723, type: 2}
   m_ShadowSettings:
     enabled: 1
     shadowAtlasWidth: 4096
     shadowAtlasHeight: 4096
-    maxShadowDistance: 1000
+    maxShadowDistance: 400
     directionalLightCascadeCount: 4
     directionalLightCascades: {x: 0.05, y: 0.2, z: 0.3}
     directionalLightNearPlaneOffset: 5
