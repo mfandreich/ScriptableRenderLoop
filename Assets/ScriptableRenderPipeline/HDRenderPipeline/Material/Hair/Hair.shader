@@ -2,6 +2,14 @@ Shader "HDRenderPipeline/ExperimentalHair"
 {
     Properties
     {
+		[Enum(Skin, 0, Hair, 1, Eye, 2)] _CharacterMaterialID("CharacterMaterialID", Int) = 0 //TODO: Move to gui
+        _PrimarySpecular("PrimarySpecular", Range(0.0, 1.0)) = 0.8
+        _SecondarySpecular("SecondarySpecular", Range(0.0, 1.0)) = 0.5
+        _PrimarySpecularShift("PrimarySpecularShift", Range(-1.0, 1.0)) = 0.0
+        _SecondarySpecularShift("SecondarySpecularShift", Range(-1.0, 1.0)) = 0.0
+        _SpecularTint("SpecularTint", Color) = (1.0, 1.0, 1.0)
+        _Scatter("Scatter", Range(0.0, 1.0)) = 0.7
+
         // Following set of parameters represent the parameters node inside the MaterialGraph.
         // They are use to fill a SurfaceData. With a MaterialGraph this should not exist.
 
@@ -336,5 +344,6 @@ Shader "HDRenderPipeline/ExperimentalHair"
         }        
     }
 
-    CustomEditor "Experimental.Rendering.HDPipeline.HairGUI"
+	CustomEditor "Experimental.Rendering.HDPipeline.CharacterGUI"
+	//CustomEditor "Experimental.Rendering.HDPipeline.HairGUI"
 }

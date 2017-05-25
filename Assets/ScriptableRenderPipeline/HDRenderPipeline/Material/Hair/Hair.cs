@@ -32,6 +32,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             public Vector3 tangentWS;
             [SurfaceDataAttributes("Anisotropy")]
             public float anisotropy; // anisotropic ratio(0->no isotropic; 1->full anisotropy in tangent direction)
+        
+            [SurfaceDataAttributes("FrontFacing")]
+            public bool isFrontFace;
+
         };
 
         //-----------------------------------------------------------------------------
@@ -62,6 +66,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             public float roughnessT;
             public float roughnessB;
             public float anisotropy;
+
+            public bool isFrontFace; //
         };
 
         //-----------------------------------------------------------------------------

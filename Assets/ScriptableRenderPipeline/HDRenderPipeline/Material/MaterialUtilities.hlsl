@@ -92,7 +92,7 @@ void ApplyDoubleSidedFlipOrMirror(inout FragInputs input)
     // _DoubleSidedConstants is float3(-1, -1, -1) in flip mode and float3(1, 1, -1) in mirror mode
     // To get a flipped normal with the tangent space, we must flip bitangent (because it is construct from the normal) and normal
     // To get a mirror normal with the tangent space, we only need to flip the normal and not the tangent
-    float2 flipSign = input.isFrontFace ? float2(1.0, 1.0) : _DoubleSidedConstants.yz; // TOCHECK :  GetOddNegativeScale() is not necessary here as it is apply for tangent space creation.
+    float2 flipSign = input.isFrontFace ? float2(1.0, 1.0) : float2(-1.0, -1.0); // TOCHECK :  GetOddNegativeScale() is not necessary here as it is apply for tangent space creation.
     input.worldToTangent[1] = flipSign.x * input.worldToTangent[1]; // bitangent
     input.worldToTangent[2] = flipSign.y * input.worldToTangent[2]; // normal
 

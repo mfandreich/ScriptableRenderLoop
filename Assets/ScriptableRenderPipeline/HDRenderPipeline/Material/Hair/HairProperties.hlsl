@@ -1,3 +1,12 @@
+float _PrimarySpecular;
+float _SecondarySpecular;
+
+float _PrimarySpecularShift;
+float _SecondarySpecularShift;
+
+float3 _SpecularTint;
+float _Scatter;
+
 // shared constant between lit and layered lit
 float _AlphaCutoff;
 float _AlphaCutoffShadow;

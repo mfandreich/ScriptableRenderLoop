@@ -321,25 +321,17 @@ float GetSurfaceData(FragInputs input, LayerTexCoord layerTexCoord, out SurfaceD
 #ifdef _DETAIL_MAP_IDX
     detailMask = SAMPLE_UVMAPPING_TEXTURE2D(ADD_IDX(_DetailMask), SAMPLER_DETAILMASK_IDX, ADD_IDX(layerTexCoord.base)).g;
     float2 detailAlbedoAndSmoothness = SAMPLE_UVMAPPING_TEXTURE2D(ADD_IDX(_DetailMap), SAMPLER_DETAILMAP_IDX, ADD_IDX(layerTexCoord.details)).rb;
-    float detailAlbedo = detailAlbedoAndSmoothness.r;
     float detailSmoothness = detailAlbedoAndSmoothness.g;
+    surfaceData.specularOcclusion = detailAlbedoAndSmoothness.g;
     // Resample the detail map but this time for the normal map. This call should be optimize by the compiler
     // We split both call due to trilinear mapping
     detailNormalTS = SAMPLE_UVMAPPING_NORMALMAP_AG(ADD_IDX(_DetailMap), SAMPLER_DETAILMAP_IDX, ADD_IDX(layerTexCoord.details), ADD_ZERO_IDX(_DetailNormalScale));
+#else
+	surfaceData.specularOcclusion = 1;
 #endif
 
     surfaceData.diffuseColor = SAMPLE_UVMAPPING_TEXTURE2D(ADD_IDX(_DiffuseColorMap), ADD_ZERO_IDX(sampler_DiffuseColorMap), ADD_IDX(layerTexCoord.base)).rgb * ADD_IDX(_DiffuseColor).rgb;
-#ifdef _DETAIL_MAP_IDX
-    surfaceData.diffuseColor *= LerpWhiteTo(2.0 * saturate(detailAlbedo * ADD_IDX(_DetailAlbedoScale)), detailMask);
-#endif
 
-#ifdef _SPECULAROCCLUSIONMAP_IDX
-    // TODO: Do something. For now just take alpha channel
-    surfaceData.specularOcclusion = SAMPLE_UVMAPPING_TEXTURE2D(ADD_IDX(_SpecularOcclusionMap), SAMPLER_SPECULAROCCLUSIONMAP_IDX, ADD_IDX(layerTexCoord.base)).a;
-#else
-    // The specular occlusion will be perform outside the internal loop
-    surfaceData.specularOcclusion = 1.0;
-#endif
     surfaceData.normalWS = float3(0.0, 0.0, 0.0); // Need to init this to keep quiet the compiler, but this is overriden later (0, 0, 0) so if we forget to override the compiler may comply.
 
                                                   // TODO: think about using BC5
@@ -380,12 +372,9 @@ float GetSurfaceData(FragInputs input, LayerTexCoord layerTexCoord, out SurfaceD
 #endif
 #endif
 
-#ifdef _ANISOTROPYMAP
-    surfaceData.anisotropy = SAMPLE_UVMAPPING_TEXTURE2D(_AnisotropyMap, sampler_AnisotropyMap, layerTexCoord.base).b;
-#else
     surfaceData.anisotropy = 1.0;
-#endif
-    surfaceData.anisotropy *= ADD_IDX(_Anisotropy);
+
+	surfaceData.isFrontFace = input.isFrontFace;
 
     return alpha;
 }
@@ -396,7 +385,11 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     LODDitheringTransition(posInput.unPositionSS, unity_LODFade.y); // Note that we pass the quantized value of LOD fade
 #endif
 
+//#ifndef SHADERPASS_FORWARD
     //ApplyDoubleSidedFlipOrMirror(input); // flipping is not working, so comment this off for hair( Temp )
+//#endif
+
+    int temp;
 
     LayerTexCoord layerTexCoord;
     ZERO_INITIALIZE(LayerTexCoord, layerTexCoord);
@@ -412,6 +405,7 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     // so it allow us to correctly deal with detail normal map and optimize the code for the layered shaders
     float3 normalTS;
     float alpha = GetSurfaceData(input, layerTexCoord, surfaceData, normalTS);
+    //alpha = 1.0;
     GetNormalAndTangentWS(input, V, normalTS, surfaceData.normalWS, surfaceData.tangentWS);
     // Done one time for all layered - cumulate with spec occ alpha for now
     surfaceData.specularOcclusion *= GetHorizonOcclusion(V, surfaceData.normalWS, input.worldToTangent[2].xyz, _HorizonFade);
