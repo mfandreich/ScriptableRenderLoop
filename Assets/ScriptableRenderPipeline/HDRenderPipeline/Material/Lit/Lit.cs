@@ -233,7 +233,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 tex.SetPixels(pixels, arrayElement);
             }
 
-            public void Build()
+            public void Build(RenderPipelineResources renderPipelineResources)
             {
                 m_InitPreFGD = Utilities.CreateEngineMaterial("Hidden/HDRenderPipeline/PreIntegratedFGD");
                 m_InitPreFGD2 = Utilities.CreateEngineMaterial("Hidden/HDRenderPipeline/PreIntegratedFGD2");
