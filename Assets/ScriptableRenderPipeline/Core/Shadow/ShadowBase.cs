@@ -723,6 +723,8 @@ namespace UnityEngine.Experimental.Rendering
         abstract public void ReserveSlots( ShadowContextStorage sc );
         abstract public void Fill( ShadowContextStorage cs );
         abstract protected void Register( GPUShadowType type, ShadowRegistry registry );
+
+        abstract public void InitializeHack(int cascadeCound, Vector3 cascadeRatios);
     }
 
     interface IShadowManager

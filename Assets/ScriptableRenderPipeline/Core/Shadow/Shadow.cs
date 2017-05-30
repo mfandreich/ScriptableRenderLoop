@@ -169,6 +169,12 @@ namespace UnityEngine.Experimental.Rendering
             m_CascadeRatios      = init.cascadeRatios;
         }
 
+        public override void InitializeHack(int cascadeCound, Vector3 cascadeRatios)
+        {
+            m_CascadeCount = cascadeCound;
+            m_CascadeRatios = cascadeRatios;
+        }
+
         override public void ReserveSlots( ShadowContextStorage sc )
         {
             m_TexSlot = sc.RequestTex2DArraySlot();

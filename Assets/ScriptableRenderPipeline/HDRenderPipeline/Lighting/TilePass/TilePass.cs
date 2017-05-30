@@ -111,6 +111,14 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             if (s_ShadowPayloadBuffer != null)
                 s_ShadowPayloadBuffer.Release();
         }
+
+        public void UpdateCascadeHack(int cascadeCount, Vector3 casadeRatios)
+        {
+            foreach(var shadowMap in m_Shadowmaps)
+            {
+                shadowMap.InitializeHack(cascadeCount, casadeRatios);
+            }
+        }
     }
 
     namespace TilePass
@@ -1199,6 +1207,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             public void PrepareLightsForGPU(ShadowSettings shadowSettings, CullResults cullResults, Camera camera)
             {
                 m_lightList.Clear();
+
+                m_ShadowSetup.UpdateCascadeHack(shadowSettings.directionalLightCascadeCount, shadowSettings.directionalLightCascades);
 
                 if (cullResults.visibleLights.Length != 0 || cullResults.visibleReflectionProbes.Length != 0)
                 {
