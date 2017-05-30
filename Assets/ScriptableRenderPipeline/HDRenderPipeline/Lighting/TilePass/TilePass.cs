@@ -112,11 +112,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 s_ShadowPayloadBuffer.Release();
         }
 
-        public void UpdateCascadeHack(int cascadeCount, Vector3 casadeRatios)
+        public void UpdateCascadeHack(int cascadeCount, Vector3 casadeRatios, float nearPlaneOffset)
         {
             foreach(var shadowMap in m_Shadowmaps)
             {
-                shadowMap.InitializeHack(cascadeCount, casadeRatios);
+                shadowMap.InitializeHack(cascadeCount, casadeRatios, nearPlaneOffset);
             }
         }
     }
@@ -1208,7 +1208,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             {
                 m_lightList.Clear();
 
-                m_ShadowSetup.UpdateCascadeHack(shadowSettings.directionalLightCascadeCount, shadowSettings.directionalLightCascades);
+                m_ShadowSetup.UpdateCascadeHack(shadowSettings.directionalLightCascadeCount, shadowSettings.directionalLightCascades, shadowSettings.directionalLightNearPlaneOffset);
 
                 if (cullResults.visibleLights.Length != 0 || cullResults.visibleReflectionProbes.Length != 0)
                 {

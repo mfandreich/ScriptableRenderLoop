@@ -724,7 +724,7 @@ namespace UnityEngine.Experimental.Rendering
         abstract public void Fill( ShadowContextStorage cs );
         abstract protected void Register( GPUShadowType type, ShadowRegistry registry );
 
-        abstract public void InitializeHack(int cascadeCound, Vector3 cascadeRatios);
+        abstract public void InitializeHack(int cascadeCound, Vector3 cascadeRatios, float nearPlaneOffset);
     }
 
     interface IShadowManager

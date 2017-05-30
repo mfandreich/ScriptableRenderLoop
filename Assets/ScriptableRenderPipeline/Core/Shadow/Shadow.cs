@@ -23,6 +23,7 @@ namespace UnityEngine.Experimental.Rendering
         protected          string                     m_ShaderKeyword;
         protected          int                        m_CascadeCount;
         protected          Vector3                    m_CascadeRatios;
+        protected          float                      m_NearPlaneOffset = 0.0f;
         protected          uint                       m_TexSlot;
         protected          uint                       m_SampSlot;
         protected          uint[]                     m_TmpWidths  = new uint[ShadowmapBase.ShadowRequest.k_MaxFaceCount];
@@ -169,10 +170,11 @@ namespace UnityEngine.Experimental.Rendering
             m_CascadeRatios      = init.cascadeRatios;
         }
 
-        public override void InitializeHack(int cascadeCound, Vector3 cascadeRatios)
+        public override void InitializeHack(int cascadeCound, Vector3 cascadeRatios, float nearPlaneOffset)
         {
             m_CascadeCount = cascadeCound;
             m_CascadeRatios = cascadeRatios;
+            m_NearPlaneOffset = nearPlaneOffset;
         }
 
         override public void ReserveSlots( ShadowContextStorage sc )
@@ -245,7 +247,7 @@ namespace UnityEngine.Experimental.Rendering
             const uint k_MaxShadowDatasPerLight = 7; // 1 shared ShadowData and up to 6 faces for point lights
             entries.Reserve( k_MaxShadowDatasPerLight );
 
-            float   nearPlaneOffset = QualitySettings.shadowNearPlaneOffset;
+            float   nearPlaneOffset = m_NearPlaneOffset; //QualitySettings.shadowNearPlaneOffset;
 
             GPUShadowAlgorithm sanitizedAlgo = ShadowUtils.ClearPrecision( sr.shadowAlgorithm );
 
