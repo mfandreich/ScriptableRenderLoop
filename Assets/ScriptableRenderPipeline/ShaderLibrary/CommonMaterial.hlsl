@@ -29,11 +29,16 @@ float3 ComputeGrainNormal(float3 grainDir, float3 V)
 // Fake anisotropic by distorting the normal.
 // The grain direction (e.g. hair or brush direction) is assumed to be orthogonal to N.
 // Anisotropic ratio (0->no isotropic; 1->full anisotropy in tangent direction)
-float3 GetAnisotropicModifiedNormal(float3 grainDir, float3 N, float3 V, float anisotropy)
+float3 GetAnisotropicModifiedNormal(float3 tangent, float3 grainDir, float3 N, float3 V, float anisotropy, float roughness)
 {
     float3 grainNormal = ComputeGrainNormal(grainDir, V);
     // TODO: test whether normalizing 'grainNormal' is worth it.
-    return normalize(lerp(N, grainNormal, anisotropy));
+//   return normalize(lerp(N, grainNormal, min(1.0, 2.5 * anisotropy * min(1.0, 3.0 * roughness))));
+
+ //  return normalize(lerp(N, grainNormal, min(1.0, 2.5 * anisotropy * min(1.0, 3.0 * roughness))));
+
+  return normalize(lerp(N, grainNormal, 2 * anisotropy * pow(roughness, 0.3)));
+ //   return normalize(lerp(N, grainNormal, 2));
 }
 
 //-----------------------------------------------------------------------------

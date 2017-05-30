@@ -170,7 +170,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             // For image based lighting
             private Material      m_InitPreFGD;
+            private Material      m_InitPreFGD2;
             private RenderTexture m_PreIntegratedFGD;
+            private RenderTexture m_PreIntegratedFGD2;
 
             // For area lighting - We pack all texture inside a texture array to reduce the number of resource required
             private Texture2DArray m_LtcData; // 0: m_LtcGGXMatrix - RGBA, 2: m_LtcDisneyDiffuseMatrix - RGBA, 3: m_LtcMultiGGXFresnelDisneyDiffuse - RGB, A unused
@@ -234,6 +236,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             public void Build()
             {
                 m_InitPreFGD = Utilities.CreateEngineMaterial("Hidden/HDRenderPipeline/PreIntegratedFGD");
+                m_InitPreFGD2 = Utilities.CreateEngineMaterial("Hidden/HDRenderPipeline/PreIntegratedFGD2");
 
                 // For DisneyDiffuse integration values goes from (0.5 to 1.53125). GGX need 0 to 1. Use float format.
                 m_PreIntegratedFGD = new RenderTexture(128, 128, 0, RenderTextureFormat.RGB111110Float, RenderTextureReadWrite.Linear);
@@ -241,6 +244,12 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 m_PreIntegratedFGD.wrapMode = TextureWrapMode.Clamp;
                 m_PreIntegratedFGD.hideFlags = HideFlags.DontSave;
                 m_PreIntegratedFGD.Create();
+
+                m_PreIntegratedFGD2 = new RenderTexture(256, 256, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+                m_PreIntegratedFGD2.filterMode = FilterMode.Bilinear;
+                m_PreIntegratedFGD2.wrapMode = TextureWrapMode.Clamp;
+                m_PreIntegratedFGD2.hideFlags = HideFlags.DontSave;
+                m_PreIntegratedFGD2.Create();
 
                 m_LtcData = new Texture2DArray(k_LtcLUTResolution, k_LtcLUTResolution, 3, TextureFormat.RGBAHalf, false /*mipmap*/, true /* linear */)
                 {
@@ -262,6 +271,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             public void Cleanup()
             {
                 Utilities.Destroy(m_InitPreFGD);
+                Utilities.Destroy(m_InitPreFGD2);
 
                 // TODO: how to delete RenderTexture ? or do we need to do it ?
                 isInit = false;
@@ -275,12 +285,19 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 renderContext.ExecuteCommandBuffer(cmd);
                 cmd.Dispose();
 
+                var cmd2 = new CommandBuffer();
+                cmd2.name = "Init PreFGD2";
+                cmd2.Blit(null, new RenderTargetIdentifier(m_PreIntegratedFGD2), m_InitPreFGD2, 0);
+                renderContext.ExecuteCommandBuffer(cmd2);
+                cmd2.Dispose();
+
                 isInit = true;
             }
 
             public void Bind()
             {
                 Shader.SetGlobalTexture("_PreIntegratedFGD", m_PreIntegratedFGD);
+                Shader.SetGlobalTexture("_PreIntegratedFGD2", m_PreIntegratedFGD2);
                 Shader.SetGlobalTexture("_LtcData", m_LtcData);
             }
         }

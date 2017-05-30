@@ -552,7 +552,7 @@ PreLightData GetPreLightData(float3 V, PositionInputs posInput, BSDFData bsdfDat
         preLightData.BdotV = dot(bsdfData.bitangentWS, V);
         preLightData.anisoGGXLambdaV = GetSmithJointGGXAnisoLambdaV(preLightData.TdotV, preLightData.BdotV, NdotV, bsdfData.roughnessT, bsdfData.roughnessB);
         // Tangent = highlight stretch (anisotropy) direction. Bitangent = grain (brush) direction.
-        float3 anisoIblNormalWS = GetAnisotropicModifiedNormal(bsdfData.bitangentWS, iblNormalWS, V, bsdfData.anisotropy);
+        float3 anisoIblNormalWS = GetAnisotropicModifiedNormal(bsdfData.tangentWS, bsdfData.bitangentWS, iblNormalWS, V, bsdfData.anisotropy, bsdfData.roughness);
 
         // NOTE: If we follow the theory we should use the modified normal for the different calculation implying a normal (like NdotV) and use iblNormalWS
         // into function like GetSpecularDominantDir(). However modified normal is just a hack. The goal is just to stretch a cubemap, no accuracy here.
@@ -565,6 +565,13 @@ PreLightData GetPreLightData(float3 V, PositionInputs posInput, BSDFData bsdfDat
 
     preLightData.iblDirWS = GetSpecularDominantDir(iblNormalWS, iblR, bsdfData.roughness, NdotV);
     preLightData.iblMipLevel = PerceptualRoughnessToMipmapLevel(bsdfData.perceptualRoughness);
+
+    if (bsdfData.materialId == MATERIALID_LIT_ANISO)
+    {
+        float perceptualRoughnessIbl = bsdfData.perceptualRoughness;
+        perceptualRoughnessIbl *= saturate(1 - pow(bsdfData.anisotropy, 4.0) * pow(bsdfData.perceptualRoughness, 2.0)); // <== this is roughness
+        preLightData.iblMipLevel = PerceptualRoughnessToMipmapLevel(perceptualRoughnessIbl);
+    }
 
     // Area light
     // UVs for sampling the LUTs
@@ -1522,7 +1529,7 @@ void EvaluateBSDF_Env(  LightLoopContext lightLoopContext,
     specularLighting = preLD.rgb * preLightData.specularFGD;
 
     // Apply specular occlusion on it
-    specularLighting *= bsdfData.specularOcclusion;
+  //  specularLighting *= bsdfData.specularOcclusion;
     diffuseLighting = float3(0.0, 0.0, 0.0);
 
 #endif
