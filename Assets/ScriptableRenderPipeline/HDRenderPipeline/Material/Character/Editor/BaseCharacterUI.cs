@@ -101,6 +101,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected MaterialProperty normalMap = null;
         protected const string kNormalMap = "_NormalMap";
 
+        protected MaterialProperty normalMapScale = null;
+        protected const string kNormalMapScale = "_NormalScale";
+
         //TODO: Move
         protected MaterialProperty hairRoughness = null;
         protected const string kHairRoughness = "_Smoothness"; //Note, in the shader code we don't invert.
@@ -181,7 +184,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
                GUILayout.Label("General", EditorStyles.boldLabel);
                m_MaterialEditor.TexturePropertySingleLine(Styles.characterDiffuseText, diffuseMap, diffuseColor);
-               m_MaterialEditor.TexturePropertySingleLine(Styles.characterNormalText, normalMap);
+               m_MaterialEditor.TexturePropertySingleLine(Styles.characterNormalText, normalMap, normalMapScale);
             }
 
             if (EditorGUI.EndChangeCheck())
@@ -211,6 +214,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             diffuseColor          = FindProperty(kDiffuseColor, props);
             diffuseMap            = FindProperty(kDiffuseMap, props);
             normalMap             = FindProperty(kNormalMap, props);
+            normalMapScale        = FindProperty(kNormalMapScale, props);
 
             hairRoughness = FindProperty(kHairRoughness, props);
             hairDetailMap = FindProperty(kHairDetailMap, props);

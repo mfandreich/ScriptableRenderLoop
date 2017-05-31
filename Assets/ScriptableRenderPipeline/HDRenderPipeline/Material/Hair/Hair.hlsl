@@ -65,10 +65,10 @@ BSDFData ConvertSurfaceDataToBSDFData(SurfaceData surfaceData)
     bsdfData.normalWS = surfaceData.normalWS;
 
     //NOTE: On Hair UI side, we use slider for roughness. So not necesarry to invert.
-    bsdfData.perceptualRoughness = surfaceData.perceptualSmoothness;//PerceptualSmoothnessToPerceptualRoughness(surfaceData.perceptualSmoothness);
+    bsdfData.perceptualRoughness = lerp(0.4,1.5,surfaceData.perceptualSmoothness);//PerceptualSmoothnessToPerceptualRoughness(surfaceData.perceptualSmoothness);
     bsdfData.roughness = PerceptualRoughnessToRoughness(bsdfData.perceptualRoughness);
 
-    bsdfData.fresnel0 = 0.04;
+    bsdfData.fresnel0 = 1;
 
     bsdfData.tangentWS   = surfaceData.tangentWS;
     bsdfData.bitangentWS = cross(surfaceData.normalWS, surfaceData.tangentWS);
@@ -170,8 +170,22 @@ float3 GetBakedDiffuseLigthing(SurfaceData surfaceData, BuiltinData builtinData,
 
 //http://web.engr.oregonstate.edu/~mjb/cs519/Projects/Papers/HairRendering.pdf
 float3 ShiftTangent(float3 T, float3 N, float shift){
-    float3 shiftedT = T + shift * N;
+    float3 shiftedT = T + N * (shift - 0.5)*2;
     return normalize(shiftedT);
+}
+
+float3 KajiyaKaySpecular(float3 H, float3 V, float3 N, float3 T, float shift, float roughness)
+{
+	// We can rewrite specExp from exp2(10 * (1.0 - roughness)) in order
+	// to remove the need to take the square root of sinTH
+	float specExp = exp2(9 - 10*roughness);
+	
+	float dotTH = dot (T, H);
+	float sinTHSq = (saturate(1.0 - (dotTH * dotTH)));
+
+	float dirAttn = clamp(dotTH + 1, 0, 1);
+
+	return dirAttn * pow (sinTHSq, specExp) ;	
 }
 
 #ifdef HAS_LIGHTLOOP
@@ -198,6 +212,7 @@ void BSDF(  float3 V, float3 L, float3 positionWS, PreLightData preLightData, BS
 
     //Must shift with bitangent and not tangent?
     float3 B1 = ShiftTangent(bsdfData.bitangentWS, bsdfData.normalWS, _PrimarySpecularShift);
+    float3 B2 = ShiftTangent(bsdfData.bitangentWS, bsdfData.normalWS, _SecondarySpecularShift);
 
     // TODO: this way of handling aniso may not be efficient, or maybe with material classification, need to check perf here
     // Maybe always using aniso maybe a win ?
@@ -207,10 +222,11 @@ void BSDF(  float3 V, float3 L, float3 positionWS, PreLightData preLightData, BS
 
     float TdotH = dot(bsdfData.tangentWS, H);
     float TdotL = dot(bsdfData.tangentWS, L);
-    float BdotH = dot(B1, H);
-    float BdotL = dot(B1, L);
-
-    bsdfData.roughnessT = ClampRoughnessForAnalyticalLights(bsdfData.roughnessT);
+    float BdotH = dot(B2, H);
+    float BdotL = dot(B2, L);
+    float BdotV = dot(B2, V);
+    float3 transL=L+bsdfData.normalWS*0.3;
+	bsdfData.roughnessT = ClampRoughnessForAnalyticalLights(bsdfData.roughnessT);
     bsdfData.roughnessB = ClampRoughnessForAnalyticalLights(bsdfData.roughnessB);
 
     // TODO: Do comparison between this correct version and the one from isotropic and see if there is any visual difference
@@ -218,12 +234,15 @@ void BSDF(  float3 V, float3 L, float3 positionWS, PreLightData preLightData, BS
                                 bsdfData.roughnessT, bsdfData.roughnessB);
 
     D = D_GGXAniso(TdotH, BdotH, NdotH, bsdfData.roughnessT, bsdfData.roughnessB);
-
-    specularLighting = 0.4*bsdfData.specularOcclusion*_PrimarySpecular*D;// (Vis * D);
+    float3 hairSpec1 =	0.5*_PrimarySpecular*KajiyaKaySpecular(H, V, bsdfData.normalWS, B1, _PrimarySpecularShift, 0.5*bsdfData.roughness)*lerp(1,_SpecularTint,0.3);
+	float3 hairSpec2 =	_SecondarySpecular*(Vis * D)*lerp(bsdfData.diffuseColor,_SpecularTint,0.5);	
+    specularLighting = 0.15*bsdfData.specularOcclusion*(hairSpec1 + hairSpec2);
 	specularLighting *= (bsdfData.isFrontFace ? 1.0 : 0.0); //Disable backfacing specular for now. Look into having a flipped normal entirely.
-
-    float  diffuseTerm = saturate(lerp(_Scatter, 1.0, NdotL)); //Lambert();
-    diffuseLighting = bsdfData.diffuseColor * diffuseTerm;
+	float scatterFresnel = 3*dot(V,-transL)*dot(V,-transL)*dot(V,-transL)*(1.0 - NdotV)*(1.0 - NdotL)+ 0.5*(1-NdotV)*(1-NdotV)*(1-NdotV);
+	float transAmount = _Scatter*scatterFresnel;
+	float3 transColor = saturate(transAmount * float3(0.992, 0.808, 0.518)*bsdfData.specularOcclusion);
+    float  diffuseTerm = Lambert();
+    diffuseLighting = bsdfData.diffuseColor * diffuseTerm+transColor;
 }
 
 //-----------------------------------------------------------------------------
@@ -550,10 +569,12 @@ void EvaluateBSDF_Env(  LightLoopContext lightLoopContext,
     // So goal is to split into two category and have an option to say if we parallax correct or not.
 
     float4 preLD = SampleEnv(lightLoopContext, lightData.envIndex, R, preLightData.iblMipLevel);
-    specularLighting = preLD.rgb * preLightData.specularFGD;
+    
+    specularLighting = float3(0.0, 0.0, 0.0);
+    //specularLighting = preLD.rgb * preLightData.specularFGD;
 
     // Apply specular occlusion on it
-    specularLighting *= bsdfData.specularOcclusion;
+    //specularLighting *= bsdfData.specularOcclusion;
     diffuseLighting = float3(0.0, 0.0, 0.0);
 }
 
