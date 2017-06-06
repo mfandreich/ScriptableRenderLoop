@@ -1,14 +1,5 @@
 Shader "Hidden/HDRenderPipeline/DrawTransmittanceGraph"
 {
-    Properties
-    {
-        [HideInInspector] _StdDev1("", Color) = (0, 0, 0)
-        [HideInInspector] _StdDev2("", Color) = (0, 0, 0)
-        [HideInInspector] _LerpWeight("", Float) = 0
-        [HideInInspector] _ThicknessScale("", Float) = 0
-        [HideInInspector] _TintColor("", Color) = (0, 0, 0)
-    }
-
     SubShader
     {
         Pass
@@ -29,16 +20,16 @@ Shader "Hidden/HDRenderPipeline/DrawTransmittanceGraph"
             // Include
             //-------------------------------------------------------------------------------------
 
+            #include "../../../ShaderLibrary/CommonMaterial.hlsl"
             #include "../../../ShaderLibrary/Common.hlsl"
-            #include "../../../ShaderLibrary/Color.hlsl"
             #include "../../ShaderVariables.hlsl"
 
             //-------------------------------------------------------------------------------------
             // Inputs & outputs
             //-------------------------------------------------------------------------------------
 
-            float4 _StdDev1, _StdDev2, _ThicknessRemap, _TintColor;
-            float _LerpWeight; // See 'SubsurfaceScatteringParameters'
+            float4 _VolumeAlbedo, _VolumeShapeParam, _ThicknessRemap;
+            float _ScatteringDistance; // See 'SubsurfaceScatteringProfile'
 
             //-------------------------------------------------------------------------------------
             // Implementation
@@ -66,17 +57,11 @@ Shader "Hidden/HDRenderPipeline/DrawTransmittanceGraph"
 
             float4 Frag(Varyings input) : SV_Target
             {
-                float thickness = _ThicknessRemap.x + input.texcoord.x * (_ThicknessRemap.y - _ThicknessRemap.x);
-                float t2        = thickness * thickness;
+                float  d = (_ThicknessRemap.x + input.texcoord.x * (_ThicknessRemap.y - _ThicknessRemap.x));
+                float3 T = ComputeTransmittance(_VolumeShapeParam.rgb, float3(1, 1, 1), d, 1);
 
-                float3 var1 = _StdDev1.rgb * _StdDev1.rgb;
-                float3 var2 = _StdDev2.rgb * _StdDev2.rgb;
-
-                // See ComputeTransmittance() in Lit.hlsl for more details.
-                float3 transmittance = lerp(exp(-t2 * 0.5 * rcp(var1)),
-                                            exp(-t2 * 0.5 * rcp(var2)), _LerpWeight);
-
-                return float4(transmittance * _TintColor.rgb, 1);
+                // Apply gamma for visualization only. Do not apply gamma to the color.
+                return float4(pow(T, 1.0 / 3) * _VolumeAlbedo.rgb, 1);
             }
             ENDHLSL
         }

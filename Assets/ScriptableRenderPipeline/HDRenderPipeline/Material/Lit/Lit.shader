@@ -15,7 +15,8 @@ Shader "HDRenderPipeline/Lit"
 
         _SpecularOcclusionMap("SpecularOcclusion", 2D) = "white" {}
 
-        _NormalMap("NormalMap", 2D) = "bump" {}
+        _NormalMap("NormalMap", 2D) = "bump" {}     // Tangent space normal map
+        _NormalMapOS("NormalMapOS", 2D) = "white" {} // Object space normal map - no good default value
         _NormalScale("_NormalScale", Range(0.0, 2.0)) = 1
 
         _HeightMap("HeightMap", 2D) = "black" {}
@@ -29,6 +30,7 @@ Shader "HDRenderPipeline/Lit"
         _DetailSmoothnessScale("_DetailSmoothnessScale", Range(-2.0, 2.0)) = 1
 
         _TangentMap("TangentMap", 2D) = "bump" {}
+        _TangentMapOS("TangentMapOS", 2D) = "white" {}
         _Anisotropy("Anisotropy", Range(0.0, 1.0)) = 0
         _AnisotropyMap("AnisotropyMap", 2D) = "white" {}
 
@@ -69,7 +71,7 @@ Shader "HDRenderPipeline/Lit"
         _HorizonFade("Horizon fade", Range(0.0, 5.0)) = 1.0
 
         // Stencil state
-        [HideInInspector] _StencilRef("_StencilRef", Int) = 2 // StencilBits.NonSSS
+        [HideInInspector] _StencilRef("_StencilRef", Int) = 2 // StencilLightingUsage.RegularLighting  (fixed at compile time)
 
         // Blending state
         [HideInInspector] _SurfaceType("__surfacetype", Float) = 0.0
@@ -81,7 +83,7 @@ Shader "HDRenderPipeline/Lit"
         [HideInInspector] _ZTestMode("_ZTestMode", Int) = 8
 
         [ToggleOff] _DoubleSidedEnable("Double sided enable", Float) = 0.0
-        [ToggleOff] _DoubleSidedMirrorEnable("Double sided mirror enable", Float) = 1.0
+        [Enum(None, 0, Mirror, 1, Flip, 2)] _DoubleSidedNormalMode("Double sided normal mode", Float) = 1
         [HideInInspector] _DoubleSidedConstants("_DoubleSidedConstants", Vector) = (1, 1, -1, 0)
 
         [Enum(UV0, 0, Planar, 1, TriPlanar, 2)] _UVBase("UV Set for base", Float) = 0
@@ -89,7 +91,7 @@ Shader "HDRenderPipeline/Lit"
         [HideInInspector] _UVMappingMask("_UVMappingMask", Color) = (1, 0, 0, 0)
         [Enum(TangentSpace, 0, ObjectSpace, 1)] _NormalMapSpace("NormalMap space", Float) = 0
 
-        [Enum(Subsurface Scattering, 0, Standard, 1, Specular Color, 2)] _MaterialID("MaterialId", Int) = 1 // MaterialId.LitStandard
+        [Enum(Subsurface Scattering, 0, Standard, 1, Specular Color, 2)] _MaterialID("MaterialId", Int) = 1 // MaterialId.RegularLighting
 
         [ToggleOff]  _EnablePerPixelDisplacement("Enable per pixel displacement", Float) = 0.0
         _PPDMinSamples("Min sample for POM", Range(1.0, 64.0)) = 5

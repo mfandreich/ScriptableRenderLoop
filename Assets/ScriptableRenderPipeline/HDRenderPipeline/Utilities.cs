@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Text;
 using UnityEngine.Rendering;
-
 using UnityObject = UnityEngine.Object;
+using System.Reflection;
 
 namespace UnityEngine.Experimental.Rendering.HDPipeline
 {
@@ -16,17 +16,35 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         ClearDepth = 2
     }
 
-    [Flags]
-    public enum StencilBits
-    {
-        None   = 0,                         // 0
-        SSS    = 1 + Lit.MaterialId.LitSSS, // 1
-        NonSSS = 2 + Lit.MaterialId.LitSSS, // 2
-        All    = 255                        // 0xFF
-    }
-
     public class Utilities
     {
+        public static List<RenderPipelineMaterial> GetRenderPipelineMaterialList()
+        {
+            List<RenderPipelineMaterial> materialList = new List<RenderPipelineMaterial>();
+
+            var baseType = typeof(RenderPipelineMaterial);
+            var assembly = baseType.Assembly;
+
+            System.Type[] types = assembly.GetTypes();
+            foreach (System.Type type in types)
+            {
+                if (type.IsSubclassOf(baseType))
+                {
+                    // Create an instance object of the given type
+                    var obj = (RenderPipelineMaterial)Activator.CreateInstance(type);
+                    materialList.Add(obj);
+                }
+            }
+
+            // Note: If there is a need for an optimization in the future of this function, user can simply fill the materialList manually by commenting the code abode and
+            // adding to the list material they used in their game.
+            //  materialList.Add(new Lit());
+            //  materialList.Add(new Unlit());
+            // ...
+
+            return materialList;
+        }
+
         public const RendererConfiguration kRendererConfigurationBakedLighting = RendererConfiguration.PerObjectLightProbe | RendererConfiguration.PerObjectLightmaps | RendererConfiguration.PerObjectLightProbeProxyVolume;
 
 
@@ -109,6 +127,15 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public static Material CreateEngineMaterial(string shaderPath)
         {
             var mat = new Material(Shader.Find(shaderPath))
+            {
+                hideFlags = HideFlags.HideAndDontSave
+            };
+            return mat;
+        }
+
+        public static Material CreateEngineMaterial(Shader shader)
+        {
+            var mat = new Material(shader)
             {
                 hideFlags = HideFlags.HideAndDontSave
             };
@@ -324,18 +351,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     material.DisableKeyword(keywords[i]);
                 }
             }
-        }
-
-        public static HDRenderPipeline GetHDRenderPipeline()
-        {
-            HDRenderPipeline renderContext = GraphicsSettings.renderPipelineAsset as HDRenderPipeline;
-            if (renderContext == null)
-            {
-                Debug.LogWarning("HDRenderPipeline is not instantiated.");
-                return null;
-            }
-
-            return renderContext;
         }
 
         // Draws a full screen triangle as a faster alternative to drawing a full screen quad.

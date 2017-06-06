@@ -8,7 +8,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
     public class HDRenderPipelineMenuItems
     {
-        // This script is a helper for the artits to re-synchronise all layered materials
+        // This script is a helper for the artists to re-synchronise all layered materials
         [MenuItem("HDRenderPipeline/Synchronize all Layered materials")]
         static void SynchronizeAllLayeredMaterial()
         {
@@ -81,46 +81,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
         }
 
-        [MenuItem("HDRenderPipeline/Swap standard and SSS material IDs")]
-        static void SwapStandardAndSssMaterialIds()
-        {
-            try
-            {
-                Object[] materials = Resources.FindObjectsOfTypeAll<Material>();
-                for (int i = 0, length = materials.Length; i < length; i++)
-                {
-                    Material mat = materials[i] as Material;
-
-                    EditorUtility.DisplayProgressBar(
-                        "Updating materials...",
-                        string.Format("{0} / {1}", i, length),
-                        i / (float)(length - 1));
-
-                    if (mat.shader.name == "HDRenderPipeline/Lit" || mat.shader.name == "HDRenderPipeline/LitTessellation")
-                    {
-                        int matID = (int)mat.GetFloat("_MaterialID");
-
-                        if (matID == 0)
-                        {
-                            matID = 1;
-                            mat.SetInt("_MaterialID", matID);
-                            EditorUtility.SetDirty(mat);
-                        }
-                        else if (matID == 1)
-                        {
-                            matID = 0;
-                            mat.SetInt("_MaterialID", matID);
-                            EditorUtility.SetDirty(mat);
-                        }
-                    }
-                }
-            }
-            finally
-            {
-                EditorUtility.ClearProgressBar();
-            }
-        }
-
+        // Funtion used only to check performance of data with and without tessellation
         [MenuItem("HDRenderPipeline/Debug/Remove tessellation materials (not reversible)")]
         static void RemoveTessellationMaterials()
         {
@@ -154,14 +115,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         [MenuItem("HDRenderPipeline/Export Sky to Image")]
         static void ExportSkyToImage()
         {
-            HDRenderPipelineInstance renderpipelineInstance = UnityEngine.Experimental.Rendering.RenderPipelineManager.currentPipeline as HDRenderPipelineInstance;
-            if(renderpipelineInstance == null)
+            HDRenderPipeline renderpipeline = UnityEngine.Experimental.Rendering.RenderPipelineManager.currentPipeline as HDRenderPipeline;
+            if(renderpipeline == null)
             {
                 Debug.LogError("HDRenderPipeline is not instantiated.");
                 return;
             }
 
-            Texture2D result = renderpipelineInstance.ExportSkyToTexture();
+            Texture2D result = renderpipeline.ExportSkyToTexture();
             if(result == null)
             {
                 return;
