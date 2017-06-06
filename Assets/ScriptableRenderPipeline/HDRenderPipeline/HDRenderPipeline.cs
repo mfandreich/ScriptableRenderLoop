@@ -522,6 +522,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
                 RenderSky(hdCamera, renderContext);
 
+                RenderForwardTransparentDepthWrite(cullResults, camera, renderContext);
+
                 // Render all type of transparent forward (unlit, lit, complex (hair...)) to keep the sorting between transparent objects.
                 RenderForward(cullResults, camera, renderContext, false);
 
@@ -636,6 +638,15 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             {
                 Utilities.SetRenderTarget(renderContext, m_CameraDepthStencilBufferRT);
                 RenderOpaqueRenderList(cull, camera, renderContext, "ForwardOnlyOpaqueDepthOnly");
+            }
+        }
+
+        void RenderForwardTransparentDepthWrite(CullResults cull, Camera camera, ScriptableRenderContext renderContext)
+        {
+            using (new Utilities.ProfilingSample("Forward transparent depth", renderContext))
+            {
+                Utilities.SetRenderTarget(renderContext, m_CameraDepthStencilBufferRT);
+                RenderTransparentRenderList(cull, camera, renderContext, "TransparentDepthWrite");
             }
         }
 
