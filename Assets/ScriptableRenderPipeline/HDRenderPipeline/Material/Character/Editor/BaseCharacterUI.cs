@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Experimental.Rendering.HDPipeline.Character;
+using UnityEngine.Experimental.Rendering.HDPipeline;
 using UnityEditor.AnimatedValues;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline
@@ -15,18 +15,18 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected AnimBool animSkin;
         protected AnimBool animHair;
         protected AnimBool animEye;
-        private void SubstanceAnim(CharacterMaterialID id) { //Works for now
+        private void SubstanceAnim(Character.CharacterMaterialID id) { //Works for now
             switch (id)
             {
-                case CharacterMaterialID.Skin:
+                case Character.CharacterMaterialID.Skin:
                     animSkin.valueChanged.AddListener(m_MaterialEditor.Repaint);
                     animSkin.target = true;  animHair.target = false; animEye.target = false;
                     break;
-                case CharacterMaterialID.Hair:
+                case Character.CharacterMaterialID.Hair:
                     animHair.valueChanged.AddListener(m_MaterialEditor.Repaint);
                     animSkin.target = false; animHair.target = true;  animEye.target = false;
                     break;
-                case CharacterMaterialID.Eye:
+                case Character.CharacterMaterialID.Eye:
                     animEye.valueChanged.AddListener(m_MaterialEditor.Repaint);
                     animSkin.target = false; animHair.target = false; animEye.target = true;
                     break;
@@ -54,10 +54,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected abstract void CharacterSkinGUI(Material material);
         protected abstract void CharacterHairGUI(Material material);
         protected abstract void CharacterEyeGUI (Material material);
-                                                                    
-        protected abstract void CharacterSkinKeywordAndPass(Material material);      
-        protected abstract void CharacterHairKeywordAndPass(Material material);      
-        protected abstract void CharacterEyeKeywordAndPass (Material material);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+
+        protected abstract void CharacterSkinKeywordAndPass(Material material);
+        protected abstract void CharacterHairKeywordAndPass(Material material);
+        protected abstract void CharacterEyeKeywordAndPass (Material material);
 
         //---------------------------------------------------------
         //GUI Text
@@ -157,21 +157,21 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             EditorGUI.BeginChangeCheck();
             {
                EditorGUILayout.LabelField("Substance Type", EditorStyles.largeLabel);
-                                
+
                GUI.color = new Color(0.7f, 0.7f, 0.7f); //NOTE: EditorGUIUtility.isProSkin
                m_MaterialEditor.ShaderProperty(materialID, Styles.characterMaterialIDText);
-               GUI.color = Color.white;                
+               GUI.color = Color.white;
 
                EditorGUI.indentLevel++;
-               switch((CharacterMaterialID)materialID.floatValue)
+               switch((Character.CharacterMaterialID)materialID.floatValue)
                {
-                    case CharacterMaterialID.Skin:
+                    case Character.CharacterMaterialID.Skin:
                         CharacterSkinGUI(material);
                         break;
-                    case CharacterMaterialID.Hair:
+                    case Character.CharacterMaterialID.Hair:
                         CharacterHairGUI(material);
                         break;
-                    case CharacterMaterialID.Eye:
+                    case Character.CharacterMaterialID.Eye:
                         CharacterEyeGUI(material);
                         break;
                     default:
@@ -179,7 +179,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                         break;
                }
                EditorGUI.indentLevel--;
-               
+
                EditorGUILayout.Separator();
 
                GUILayout.Label("General", EditorStyles.boldLabel);
@@ -193,15 +193,15 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
                 //TODO: Unique Flag Sets
                 int matID = material.GetInt(kMaterialID);
-                switch ((CharacterMaterialID)materialID.floatValue)
+                switch ((Character.CharacterMaterialID)materialID.floatValue)
                 {
-                    case CharacterMaterialID.Skin:
+                    case Character.CharacterMaterialID.Skin:
                         CharacterSkinKeywordAndPass(material);
                         break;
-                    case CharacterMaterialID.Hair:
+                    case Character.CharacterMaterialID.Hair:
                         CharacterHairKeywordAndPass(material);
                         break;
-                    case CharacterMaterialID.Eye:
+                    case Character.CharacterMaterialID.Eye:
                         CharacterEyeKeywordAndPass(material);
                         break;
                 }
@@ -240,7 +240,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             FindProperties(props); //TODO: Only Base properties here
             Material material = materialEditor.target as Material;
-            SubstanceAnim((CharacterMaterialID)materialID.floatValue);
+            SubstanceAnim((Character.CharacterMaterialID)materialID.floatValue);
             ShaderPropertiesGUI(material);
 
             m_MaterialEditor.serializedObject.ApplyModifiedProperties();

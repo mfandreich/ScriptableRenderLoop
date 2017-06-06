@@ -2,7 +2,7 @@ using UnityEngine.Rendering;
 
 namespace UnityEngine.Experimental.Rendering.HDPipeline
 {
-    namespace Hair
+    public partial class Hair : RenderPipelineMaterial
     {
         //-----------------------------------------------------------------------------
         // SurfaceData
@@ -32,7 +32,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             public Vector3 tangentWS;
             [SurfaceDataAttributes("Anisotropy")]
             public float anisotropy; // anisotropic ratio(0->no isotropic; 1->full anisotropy in tangent direction)
-        
+
             [SurfaceDataAttributes("FrontFacing")]
             public bool isFrontFace;
 
@@ -69,21 +69,5 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             public bool isFrontFace; //
         };
-
-        //-----------------------------------------------------------------------------
-        // RenderLoop management
-        //-----------------------------------------------------------------------------
-
-        public partial class RenderLoop : Object
-        {
-            // TODO: For now hair shader will access to preintegrated GGX BRDF. Maybe we will require to change that later.
-            // Here we assume that _PreIntegratedFGD is define in Lit and setup by lit for gbuffer with SetGlobalTexture
-            /*
-            public void Bind()
-            {
-                Shader.SetGlobalTexture("_PreIntegratedFGD", Lit.RenderLoop.m_PreIntegratedFGD);
-            }
-            */
-        }
     }
 }

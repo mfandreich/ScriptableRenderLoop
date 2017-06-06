@@ -2,7 +2,6 @@
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Experimental.Rendering.HDPipeline;
-using UnityEngine.Experimental.Rendering.HDPipeline.Character;
 using UnityEditor.AnimatedValues;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline
@@ -22,10 +21,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
             EditorGUILayout.EndFadeGroup();
         }
-        
+
         protected override void CharacterHairGUI(Material material)
         {
-            
+
             if (EditorGUILayout.BeginFadeGroup(animHair.faded))
             {
                 //Hair GUI

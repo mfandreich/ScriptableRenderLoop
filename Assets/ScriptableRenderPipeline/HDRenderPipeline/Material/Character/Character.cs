@@ -2,7 +2,7 @@
 
 namespace UnityEngine.Experimental.Rendering.HDPipeline
 {
-    namespace Character
+    public partial class Character : RenderPipelineMaterial
     {
         [GenerateHLSL(PackingRules.Exact)]
         public enum CharacterMaterialID
