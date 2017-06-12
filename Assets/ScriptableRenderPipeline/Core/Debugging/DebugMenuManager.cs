@@ -10,9 +10,6 @@ namespace UnityEngine.Experimental.Rendering
     public class DebugMenuManager
     {
         private static DebugMenuManager s_Instance = null;
-        private static string s_MenuStateAssetPath = "Assets/DebugMenuState.asset";
-
-        private DebugMenuState m_DebugMenuState = null;
 
         static public DebugMenuManager instance
         {
@@ -21,7 +18,6 @@ namespace UnityEngine.Experimental.Rendering
                 if (s_Instance == null)
                 {
                     s_Instance = new DebugMenuManager();
-                    s_Instance.Initialize();
                 }
 
                 return s_Instance;
@@ -31,10 +27,12 @@ namespace UnityEngine.Experimental.Rendering
         List<DebugPanel>    m_DebugPanels = new List<DebugPanel>();
         DebugPanel          m_PersistentDebugPanel = null;
         DebugMenuUI         m_DebugMenuUI = null;
-        bool                m_UpdateFromItemStateRequired = false;
 
         public int          panelCount          { get { return m_DebugPanels.Count; } }
         public DebugMenuUI  menuUI              { get { return m_DebugMenuUI; } }
+
+        private DebugMenuState m_DebugMenuState = null;
+        private bool m_DebugMenuStateDirty = false;
 
         DebugMenuManager()
         {
@@ -50,34 +48,6 @@ namespace UnityEngine.Experimental.Rendering
                 go.hideFlags = HideFlags.HideAndDontSave;
                 go.AddComponent<DebugMenuUpdater>();
             }
-        }
-
-        private void Initialize()
-        {
-#if UNITY_EDITOR
-            m_DebugMenuState = UnityEditor.AssetDatabase.LoadAssetAtPath<DebugMenuState>(s_MenuStateAssetPath);
-
-            if (m_DebugMenuState == null)
-            {
-                m_DebugMenuState = ScriptableObject.CreateInstance<DebugMenuState>();
-                UnityEditor.AssetDatabase.CreateAsset(m_DebugMenuState, s_MenuStateAssetPath);
-            }
-#endif
-        }
-
-        public void RequireUpdateFromDebugItemState()
-        {
-            m_UpdateFromItemStateRequired = true;
-        }
-
-        public DebugItemState FindDebugItemState(string itemName, string menuName)
-        {
-            return m_DebugMenuState.FindDebugItemState(itemName, menuName);
-        }
-
-        public void AddDebugItemState(DebugItemState state)
-        {
-            m_DebugMenuState.AddDebugItemState(state);
         }
 
         public DebugPanel GetDebugPanel(int index)
@@ -132,13 +102,13 @@ namespace UnityEngine.Experimental.Rendering
 
         public void Update()
         {
-            m_DebugMenuUI.Update();
-
-            if(m_UpdateFromItemStateRequired)
+            if(m_DebugMenuState != null && m_DebugMenuStateDirty)
             {
-                m_UpdateFromItemStateRequired = false;
+                m_DebugMenuStateDirty = false;
                 m_DebugMenuState.UpdateAllDebugItems();
             }
+
+            m_DebugMenuUI.Update();
         }
 
         private void AddDebugPanel(DebugPanel panel)
@@ -147,16 +117,18 @@ namespace UnityEngine.Experimental.Rendering
             m_DebugMenuUI.AddDebugPanel(panel);
         }
 
-        public void AddDebugItem<DebugPanelType, DebugItemType>(string name, Func<object> getter, Action<object> setter = null, bool dynamicDisplay = false, DebugItemHandler handler = null) where DebugPanelType : DebugPanel
+        public void AddDebugItem<DebugPanelType, DebugItemType>(string name, Func<object> getter, Action<object> setter = null, DebugItemFlag flags = DebugItemFlag.None, DebugItemHandler handler = null) where DebugPanelType : DebugPanel
         {
-            DebugPanelType debugMenu = GetDebugPanel<DebugPanelType>();
-            if (debugMenu != null)
+            DebugPanelType debugPanel = GetDebugPanel<DebugPanelType>();
+            if (debugPanel != null)
             {
-                debugMenu.AddDebugItem<DebugItemType>(name, getter, setter, dynamicDisplay, handler);
+                debugPanel.AddDebugItem<DebugItemType>(name, getter, setter, flags, handler);
             }
+
+            m_DebugMenuStateDirty = true;
         }
 
-        public void AddDebugItem<DebugItemType>(string debugPanelName, string name, Func<object> getter, Action<object> setter = null, bool dynamicDisplay = false, DebugItemHandler handler = null)
+        public void AddDebugItem<DebugItemType>(string debugPanelName, string name, Func<object> getter, Action<object> setter = null, DebugItemFlag flags = DebugItemFlag.None, DebugItemHandler handler = null)
         {
             DebugPanel debugPanel = GetDebugPanel(debugPanelName);
             // If the menu does not exist, create a generic one. This way, users don't have to explicitely create a new DebugMenu class if they don't need any particular overriding of default behavior.
@@ -168,8 +140,16 @@ namespace UnityEngine.Experimental.Rendering
 
             if (debugPanel != null)
             {
-                debugPanel.AddDebugItem<DebugItemType>(name, getter, setter, dynamicDisplay, handler);
+                debugPanel.AddDebugItem<DebugItemType>(name, getter, setter, flags, handler);
             }
+
+            m_DebugMenuStateDirty = true;
+        }
+
+        public void SetDebugMenuState(DebugMenuState state)
+        {
+            m_DebugMenuStateDirty = true;
+            m_DebugMenuState = state;
         }
     }
 }

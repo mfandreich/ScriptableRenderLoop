@@ -13,22 +13,25 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             var instance = CreateInstance<RenderPipelineResources>();
 
             instance.debugDisplayLatlongShader = UnityEditor.AssetDatabase.LoadAssetAtPath<Shader>("Assets/ScriptableRenderPipeline/HDRenderPipeline/Debug/DebugDisplayLatlong.Shader");
-            instance.debugDisplayShadowMapShader = UnityEditor.AssetDatabase.LoadAssetAtPath<Shader>("Assets/ScriptableRenderPipeline/HDRenderPipeline/Debug/DebugDisplayShadowMap.Shader");
             instance.debugViewMaterialGBufferShader = UnityEditor.AssetDatabase.LoadAssetAtPath<Shader>("Assets/ScriptableRenderPipeline/HDRenderPipeline/Debug/DebugViewMaterialGBuffer.Shader");
             instance.debugViewTilesShader = UnityEditor.AssetDatabase.LoadAssetAtPath<Shader>("Assets/ScriptableRenderPipeline/HDRenderPipeline/Debug/DebugViewTiles.Shader");
+            instance.debugFullScreenShader = UnityEditor.AssetDatabase.LoadAssetAtPath<Shader>("Assets/ScriptableRenderPipeline/HDRenderPipeline/Debug/DebugFullScreen.Shader");
 
             instance.deferredShader = UnityEditor.AssetDatabase.LoadAssetAtPath<Shader>("Assets/ScriptableRenderPipeline/HDRenderPipeline/Lighting/Deferred.Shader");
 
             instance.clearDispatchIndirectShader = UnityEditor.AssetDatabase.LoadAssetAtPath<ComputeShader>("Assets/ScriptableRenderPipeline/HDRenderPipeline/Lighting/TilePass/cleardispatchindirect.compute");
+            instance.buildDispatchIndirectShader = UnityEditor.AssetDatabase.LoadAssetAtPath<ComputeShader>("Assets/ScriptableRenderPipeline/HDRenderPipeline/Lighting/TilePass/builddispatchindirect.compute");
             instance.buildScreenAABBShader = UnityEditor.AssetDatabase.LoadAssetAtPath<ComputeShader>("Assets/ScriptableRenderPipeline/HDRenderPipeline/Lighting/TilePass/scrbound.compute");
             instance.buildPerTileLightListShader = UnityEditor.AssetDatabase.LoadAssetAtPath<ComputeShader>("Assets/ScriptableRenderPipeline/HDRenderPipeline/Lighting/TilePass/lightlistbuild.compute");
             instance.buildPerBigTileLightListShader = UnityEditor.AssetDatabase.LoadAssetAtPath<ComputeShader>("Assets/ScriptableRenderPipeline/HDRenderPipeline/Lighting/TilePass/lightlistbuild-bigtile.compute");
             instance.buildPerVoxelLightListShader = UnityEditor.AssetDatabase.LoadAssetAtPath<ComputeShader>("Assets/ScriptableRenderPipeline/HDRenderPipeline/Lighting/TilePass/lightlistbuild-clustered.compute");
+            instance.buildMaterialFlagsShader = UnityEditor.AssetDatabase.LoadAssetAtPath<ComputeShader>("Assets/ScriptableRenderPipeline/HDRenderPipeline/Lighting/TilePass/materialflags.compute");
             instance.shadeOpaqueShader = UnityEditor.AssetDatabase.LoadAssetAtPath<ComputeShader>("Assets/ScriptableRenderPipeline/HDRenderPipeline/Lighting/TilePass/shadeopaque.compute");
 
             // SceneSettings
-            instance.drawGaussianProfileShader = UnityEditor.AssetDatabase.LoadAssetAtPath<Shader>("Assets/ScriptableRenderPipeline/HDRenderPipeline/SceneSettings/DrawGaussianProfile.shader");
-            instance.drawTransmittanceGraphShader = UnityEditor.AssetDatabase.LoadAssetAtPath<Shader>("Assets/ScriptableRenderPipeline/HDRenderPipeline/SceneSettings/DrawTransmittanceGraph.shader");
+            // These shaders don't need to be reference by RenderPipelineResource as they are not use at runtime (only to draw in editor)
+            // instance.drawSssProfile = UnityEditor.AssetDatabase.LoadAssetAtPath<Shader>("Assets/ScriptableRenderPipeline/HDRenderPipeline/SceneSettings/DrawSssProfile.shader");
+            // instance.drawTransmittanceGraphShader = UnityEditor.AssetDatabase.LoadAssetAtPath<Shader>("Assets/ScriptableRenderPipeline/HDRenderPipeline/SceneSettings/DrawTransmittanceGraph.shader");
 
             // Sky
             instance.blitCubemap = UnityEditor.AssetDatabase.LoadAssetAtPath<Shader>("Assets/ScriptableRenderPipeline/HDRenderPipeline/Sky/BlitCubemap.shader");
@@ -46,24 +49,27 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 #endif
         // Debug
         public Shader debugDisplayLatlongShader;
-        public Shader debugDisplayShadowMapShader;
         public Shader debugViewMaterialGBufferShader;
         public Shader debugViewTilesShader;
+        public Shader debugFullScreenShader;
 
         // Lighting resources
         public Shader deferredShader;
 
         // Lighting tile pass resources
         public ComputeShader clearDispatchIndirectShader;
+        public ComputeShader buildDispatchIndirectShader;
         public ComputeShader buildScreenAABBShader;
         public ComputeShader buildPerTileLightListShader;     // FPTL
         public ComputeShader buildPerBigTileLightListShader;
         public ComputeShader buildPerVoxelLightListShader;    // clustered
+        public ComputeShader buildMaterialFlagsShader;
         public ComputeShader shadeOpaqueShader;
 
         // SceneSettings
-        public Shader drawGaussianProfileShader;
-        public Shader drawTransmittanceGraphShader;
+        // These shaders don't need to be reference by RenderPipelineResource as they are not use at runtime (only to draw in editor)
+        // public Shader drawSssProfile;
+        // public Shader drawTransmittanceGraphShader;
 
         // Sky
         public Shader blitCubemap;

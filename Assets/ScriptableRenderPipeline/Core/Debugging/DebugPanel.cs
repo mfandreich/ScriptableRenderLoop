@@ -5,22 +5,34 @@ using System;
 
 namespace UnityEngine.Experimental.Rendering
 {
+    [Flags]
+    public enum DebugItemFlag
+    {
+        None,
+        DynamicDisplay,
+        EditorOnly
+    }
+
     public class DebugItem
     {
+        static public event Action<DebugItem> OnItemDirty;
+
         public Type             type            { get { return m_Type; } }
         public string           name            { get { return m_Name; } }
-        public DebugItemHandler handler          { get { return m_Handler; } }
-        public bool             dynamicDisplay  { get { return m_DynamicDisplay; } }
+        public string           panelName       { get { return m_PanelName; } }
+        public DebugItemHandler handler         { get { return m_Handler; } }
+        public DebugItemFlag    flags           { get { return m_Flags; } }
         public bool             readOnly        { get { return m_Setter == null; } }
 
-        public DebugItem(string name, Type type, Func<object> getter, Action<object> setter, bool dynamicDisplay = false, DebugItemHandler handler = null)
+        public DebugItem(string name, string panelName, Type type, Func<object> getter, Action<object> setter, DebugItemFlag flags = DebugItemFlag.None, DebugItemHandler handler = null)
         {
             m_Type = type;
             m_Setter = setter;
             m_Getter = getter;
             m_Name = name;
+            m_PanelName = panelName;
             m_Handler = handler;
-            m_DynamicDisplay = dynamicDisplay;
+            m_Flags = flags;
         }
 
         public Type GetItemType()
@@ -35,11 +47,10 @@ namespace UnityEngine.Experimental.Rendering
             {
                 m_Setter(value);
                 m_Handler.ClampValues(m_Getter, m_Setter);
-
-                // Update state for serialization/undo
-                if(record)
-                    m_State.SetValue(m_Getter());
             }
+
+            if (record && OnItemDirty != null)
+                OnItemDirty(this);
         }
 
         public object GetValue()
@@ -47,18 +58,13 @@ namespace UnityEngine.Experimental.Rendering
             return m_Getter();
         }
 
-        public void SetDebugItemState(DebugItemState state)
-        {
-            m_State = state;
-        }
-
         Func<object>        m_Getter;
         Action<object>      m_Setter;
         Type                m_Type;
         string              m_Name;
+        string              m_PanelName;
         DebugItemHandler    m_Handler = null;
-        bool                m_DynamicDisplay = false;
-        DebugItemState      m_State = null;
+        DebugItemFlag       m_Flags = DebugItemFlag.None;
     }
 
     public class DebugPanel
@@ -111,25 +117,18 @@ namespace UnityEngine.Experimental.Rendering
             m_DebugPanelUI.RebuildGUI();
         }
 
-        public void AddDebugItem<ItemType>(string name, Func<object> getter, Action<object> setter, bool dynamicDisplay = false, DebugItemHandler handler = null)
+        public void AddDebugItem<ItemType>(string itemName, Func<object> getter, Action<object> setter, DebugItemFlag flags = DebugItemFlag.None, DebugItemHandler handler = null)
         {
             if (handler == null)
                 handler = new DefaultDebugItemHandler();
-            DebugItem newItem = new DebugItem(name, typeof(ItemType), getter, setter, dynamicDisplay, handler);
+
+            DebugItem oldItem = GetDebugItem(itemName);
+            if (oldItem != null)
+                RemoveDebugItem(oldItem);
+
+            DebugItem newItem = new DebugItem(itemName, m_Name, typeof(ItemType), getter, setter, flags, handler);
             handler.SetDebugItem(newItem);
             m_Items.Add(newItem);
-
-            DebugMenuManager dmm = DebugMenuManager.instance;
-            DebugItemState itemState = dmm.FindDebugItemState(name, m_Name);
-            if(itemState == null)
-            {
-                itemState = handler.CreateDebugItemState();
-                itemState.Initialize(name, m_Name);
-                itemState.SetValue(getter());
-                dmm.AddDebugItemState(itemState);
-            }
-
-            newItem.SetDebugItemState(itemState);
         }
     }
 

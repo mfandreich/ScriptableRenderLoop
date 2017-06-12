@@ -95,7 +95,7 @@ void GenerateLayerTexCoordBasisTB(FragInputs input, inout LayerTexCoord layerTex
 
     float3 sigmaX = dPdx - dot(dPdx, vertexNormalWS) * vertexNormalWS;
     float3 sigmaY = dPdy - dot(dPdy, vertexNormalWS) * vertexNormalWS;
-    //float flipSign = dot(sigmaY, cross(nrmVertexNormal, sigmaX) ) ? -1.0 : 1.0;
+    //float flipSign = dot(sigmaY, cross(vertexNormalWS, sigmaX) ) ? -1.0 : 1.0;
     float flipSign = dot(dPdy, cross(vertexNormalWS, dPdx)) < 0.0 ? -1.0 : 1.0; // gives same as the commented out line above
 
     // TODO: Optimize! The compiler will not be able to remove the tangent space that are not use because it can't know due to our UVMapping constant we use for both base and details
@@ -114,7 +114,13 @@ void GenerateLayerTexCoordBasisTB(FragInputs input, inout LayerTexCoord layerTex
 
 #ifndef LAYERED_LIT_SHADER
 
+// Want to use only one sampler for normalmap either we use OS or TS.
+#ifdef _NORMALMAP_TANGENT_SPACE
 #define SAMPLER_NORMALMAP_IDX sampler_NormalMap
+#else
+#define SAMPLER_NORMALMAP_IDX sampler_NormalMapOS
+#endif
+
 #define SAMPLER_DETAILMASK_IDX sampler_DetailMask
 #define SAMPLER_DETAILMAP_IDX sampler_DetailMap
 #define SAMPLER_MASKMAP_IDX sampler_MaskMap
@@ -299,12 +305,7 @@ float ApplyPerPixelDisplacement(FragInputs input, float3 V, inout LayerTexCoord 
 
             float3x3 worldToTangent = input.worldToTangent;
 
-        #ifdef SURFACE_GRADIENT
-            // The TBN is not normalize, normalize it to do per pixel displacement
-            worldToTangent[1] = normalize(worldToTangent[1]);
-            worldToTangent[2] = normalize(worldToTangent[2]);
-        #endif
-
+            // Note: The TBN is not normalize as it is based on mikkt. We should normalize it, but POM is always use on simple enough surfarce that mean it is not required (save 2 normalize). Tag: SURFACE_GRADIENT
             float3 viewDirTS = isPlanar ? float3(uvXZ, V.y) : TransformWorldToTangent(V, worldToTangent);
             NdotV = viewDirTS.z;
 
@@ -360,13 +361,15 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     ApplyDepthOffsetPositionInput(V, depthOffset, GetWorldToHClipMatrix(), posInput);
 #endif
 
+    float3 interpolatedVertexNormal = input.worldToTangent[2].xyz;
+
     // We perform the conversion to world of the normalTS outside of the GetSurfaceData
     // so it allow us to correctly deal with detail normal map and optimize the code for the layered shaders
     float3 normalTS;
     float alpha = GetSurfaceData(input, layerTexCoord, surfaceData, normalTS);
     GetNormalAndTangentWS(input, V, normalTS, surfaceData.normalWS, surfaceData.tangentWS);
     // Done one time for all layered - cumulate with spec occ alpha for now
-    surfaceData.specularOcclusion *= GetHorizonOcclusion(V, surfaceData.normalWS, input.worldToTangent[2].xyz, _HorizonFade);
+    surfaceData.specularOcclusion *= GetHorizonOcclusion(V, surfaceData.normalWS, interpolatedVertexNormal, _HorizonFade);
 
     // Caution: surfaceData must be fully initialize before calling GetBuiltinData
     GetBuiltinData(input, surfaceData, alpha, depthOffset, builtinData);
@@ -378,13 +381,29 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
 // for this we put the constraint that the sampler are the same in a layered material for all textures of the same type
 // then we take the sampler matching the first textures use of this type
 #if defined(_NORMALMAP0)
-#define SAMPLER_NORMALMAP_IDX sampler_NormalMap0
+    #if defined(_NORMALMAP_TANGENT_SPACE0)
+    #define SAMPLER_NORMALMAP_IDX sampler_NormalMap0
+    #else
+    #define SAMPLER_NORMALMAP_IDX sampler_NormalMapOS0
+    #endif
 #elif defined(_NORMALMAP1)
-#define SAMPLER_NORMALMAP_IDX sampler_NormalMap1
+    #if defined(_NORMALMAP_TANGENT_SPACE1)
+    #define SAMPLER_NORMALMAP_IDX sampler_NormalMap1
+    #else
+    #define SAMPLER_NORMALMAP_IDX sampler_NormalMapOS1
+    #endif
 #elif defined(_NORMALMAP2)
-#define SAMPLER_NORMALMAP_IDX sampler_NormalMap2
+    #if defined(_NORMALMAP_TANGENT_SPACE2)
+    #define SAMPLER_NORMALMAP_IDX sampler_NormalMap2
+    #else
+    #define SAMPLER_NORMALMAP_IDX sampler_NormalMapOS2
+    #endif
 #else
-#define SAMPLER_NORMALMAP_IDX sampler_NormalMap3
+    #if defined(_NORMALMAP_TANGENT_SPACE3)
+    #define SAMPLER_NORMALMAP_IDX sampler_NormalMap3
+    #else
+    #define SAMPLER_NORMALMAP_IDX sampler_NormalMapOS3
+    #endif
 #endif
 
 #if defined(_DETAIL_MAP0)
@@ -1023,12 +1042,7 @@ float ApplyPerPixelDisplacement(FragInputs input, float3 V, inout LayerTexCoord 
 
             float3x3 worldToTangent = input.worldToTangent;
 
-        #ifdef SURFACE_GRADIENT
-            // The TBN is not normalize, normalize it to do per pixel displacement
-            worldToTangent[1] = normalize(worldToTangent[1]);
-            worldToTangent[2] = normalize(worldToTangent[2]);
-        #endif
-
+            // Note: The TBN is not normalize as it is based on mikkt. We should normalize it, but POM is always use on simple enough surfarce that mean it is not required (save 2 normalize). Tag: SURFACE_GRADIENT
             // For planar the view vector is the world view vector (unless we want to support object triplanar ? and in this case used TransformWorldToObject)
             // TODO: do we support object triplanar ? See ComputeLayerTexCoord
             float3 viewDirTS = isPlanar ? float3(-V.xz, V.y) : TransformWorldToTangent(V, worldToTangent);
@@ -1242,11 +1256,7 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     surfaceData.perceptualSmoothness = SURFACEDATA_BLEND_SCALAR(surfaceData, perceptualSmoothness, weights);
     surfaceData.ambientOcclusion = SURFACEDATA_BLEND_SCALAR(surfaceData, ambientOcclusion, weights);
     surfaceData.metallic = SURFACEDATA_BLEND_SCALAR(surfaceData, metallic, weights);
-#ifdef SURFACE_GRADIENT
-    surfaceData.tangentWS = normalize(input.worldToTangent[0].xyz); // The tangent is not normalize in worldToTangent when using surface gradient
-#else
-    surfaceData.tangentWS = input.worldToTangent[0].xyz;
-#endif
+    surfaceData.tangentWS = normalize(input.worldToTangent[0].xyz); // The tangent is not normalize in worldToTangent for mikkt. Tag: SURFACE_GRADIENT
     // Init other parameters
     surfaceData.materialId = 1; // MaterialId.LitStandard
     surfaceData.anisotropy = 0;
