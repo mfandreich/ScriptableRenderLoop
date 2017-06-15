@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 55fd692de65e703408cbda23b0eae8d0
+guid: f9ddaffcda19d4c7fbc4de4677cc090a
 timeCreated: 1492083821
 licenseType: Pro
 TextureImporter:
@@ -57,6 +57,7 @@ TextureImporter:
   platformSettings:
   - buildTarget: DefaultTexturePlatform
     maxTextureSize: 2048
+    resizeAlgorithm: 0
     textureFormat: -1
     textureCompression: 1
     compressionQuality: 50
