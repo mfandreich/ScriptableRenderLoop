@@ -6,12 +6,12 @@ PlayerSettings:
   serializedVersion: 12
   productGUID: 900e9e40d20cd3e44ad40e5b00239dcc
   AndroidProfiler: 0
-  defaultScreenOrientation: 4
+  defaultScreenOrientation: 3
   targetDevice: 2
   useOnDemandResources: 0
   accelerometerFrequency: 60
-  companyName: DefaultCompany
-  productName: dev
+  companyName: Unity
+  productName: SRP
   defaultCursor: {fileID: 0}
   cursorHotspot: {x: 0, y: 0}
   m_SplashScreenBackgroundColor: {r: 0.13333334, g: 0.17254902, b: 0.21176471, a: 1}
@@ -148,7 +148,7 @@ PlayerSettings:
     Android: com.Company.ProductName
     Standalone: unity.DefaultCompany.dev
     Tizen: com.Company.ProductName
-    iOS: com.Company.ProductName
+    iOS: com.unity.SRP
     tvOS: com.Company.ProductName
   buildNumber:
     iOS: 0
@@ -159,7 +159,7 @@ PlayerSettings:
   aotOptions: 
   stripEngineCode: 1
   iPhoneStrippingLevel: 0
-  iPhoneScriptCallOptimization: 0
+  iPhoneScriptCallOptimization: 1
   ForceInternetPermission: 0
   ForceSDCardPermission: 0
   CreateWallpaper: 0
