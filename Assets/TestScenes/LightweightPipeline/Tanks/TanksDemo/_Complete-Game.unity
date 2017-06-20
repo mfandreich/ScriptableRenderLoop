@@ -1046,7 +1046,7 @@ Prefab:
       objectReference: {fileID: 0}
     - target: {fileID: 10878784, guid: 312c52d27be2d2d42acea3ccebc4694b, type: 2}
       propertyPath: m_Shadows.m_Bias
-      value: 0.05
+      value: 0.005
       objectReference: {fileID: 0}
     - target: {fileID: 10878784, guid: 312c52d27be2d2d42acea3ccebc4694b, type: 2}
       propertyPath: m_Lightmapping
@@ -1066,7 +1066,7 @@ Prefab:
       objectReference: {fileID: 0}
     - target: {fileID: 10878784, guid: 312c52d27be2d2d42acea3ccebc4694b, type: 2}
       propertyPath: m_Shadows.m_Type
-      value: 2
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 418400, guid: 312c52d27be2d2d42acea3ccebc4694b, type: 2}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -1095,6 +1095,10 @@ Prefab:
     - target: {fileID: 418400, guid: 312c52d27be2d2d42acea3ccebc4694b, type: 2}
       propertyPath: m_LocalRotation.w
       value: 0.9225435
+      objectReference: {fileID: 0}
+    - target: {fileID: 10878784, guid: 312c52d27be2d2d42acea3ccebc4694b, type: 2}
+      propertyPath: m_Shadows.m_NormalBias
+      value: 0.15
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 312c52d27be2d2d42acea3ccebc4694b, type: 2}
