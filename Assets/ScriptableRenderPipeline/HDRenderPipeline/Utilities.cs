@@ -253,43 +253,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             return gpuVP;
         }
 
-        // TEMP: These functions should be implemented C++ side, for now do it in C#
-        public static void SetMatrixCS(CommandBuffer cmd, ComputeShader shadercs, string name, Matrix4x4 mat)
-        {
-            var data = new float[16];
-
-            for (int c = 0; c < 4; c++)
-                for (int r = 0; r < 4; r++)
-                    data[4 * c + r] = mat[r, c];
-
-            cmd.SetComputeFloatParams(shadercs, name, data);
-        }
-
-        public static void SetMatrixArrayCS(CommandBuffer cmd, ComputeShader shadercs, string name, Matrix4x4[] matArray)
-        {
-            int numMatrices = matArray.Length;
-            var data = new float[numMatrices * 16];
-
-            for (int n = 0; n < numMatrices; n++)
-                for (int c = 0; c < 4; c++)
-                    for (int r = 0; r < 4; r++)
-                        data[16 * n + 4 * c + r] = matArray[n][r, c];
-
-            cmd.SetComputeFloatParams(shadercs, name, data);
-        }
-
-        public static void SetVectorArrayCS(CommandBuffer cmd, ComputeShader shadercs, string name, Vector4[] vecArray)
-        {
-            int numVectors = vecArray.Length;
-            var data = new float[numVectors * 4];
-
-            for (int n = 0; n < numVectors; n++)
-                for (int i = 0; i < 4; i++)
-                    data[4 * n + i] = vecArray[n][i];
-
-            cmd.SetComputeFloatParams(shadercs, name, data);
-        }
-
         public static void SetKeyword(Material m, string keyword, bool state)
         {
             if (state)

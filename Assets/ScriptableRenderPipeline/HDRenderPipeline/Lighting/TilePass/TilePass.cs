@@ -1475,8 +1475,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
                 cmd.SetComputeIntParam(buildPerVoxelLightListShader, "_EnvLightIndexShift", m_lightList.lights.Count);
                 cmd.SetComputeIntParam(buildPerVoxelLightListShader, "g_iNrVisibLights", m_lightCount);
-                Utilities.SetMatrixCS(cmd, buildPerVoxelLightListShader, "g_mScrProjection", projscr);
-                Utilities.SetMatrixCS(cmd, buildPerVoxelLightListShader, "g_mInvScrProjection", invProjscr);
+                cmd.SetComputeMatrixParam(buildPerVoxelLightListShader, "g_mScrProjection", projscr);
+                cmd.SetComputeMatrixParam(buildPerVoxelLightListShader, "g_mInvScrProjection", invProjscr);
 
                 cmd.SetComputeIntParam(buildPerVoxelLightListShader, "g_iLog2NumClusters", k_Log2NumClusters);
 
@@ -1550,8 +1550,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     cmd.SetComputeIntParam(buildScreenAABBShader, "g_iNrVisibLights", m_lightCount);
                     cmd.SetComputeBufferParam(buildScreenAABBShader, s_GenAABBKernel, "g_data", s_ConvexBoundsBuffer);
 
-                    Utilities.SetMatrixCS(cmd, buildScreenAABBShader, "g_mProjection", projh);
-                    Utilities.SetMatrixCS(cmd, buildScreenAABBShader, "g_mInvProjection", invProjh);
+                    cmd.SetComputeMatrixParam(buildScreenAABBShader, "g_mProjection", projh);
+                    cmd.SetComputeMatrixParam(buildScreenAABBShader, "g_mInvProjection", invProjh);
                     cmd.SetComputeBufferParam(buildScreenAABBShader, s_GenAABBKernel, "g_vBoundsBuffer", s_AABBBoundsBuffer);
                     cmd.DispatchCompute(buildScreenAABBShader, s_GenAABBKernel, (m_lightCount + 7) / 8, 1, 1);
                 }
@@ -1562,8 +1562,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     cmd.SetComputeIntParams(buildPerBigTileLightListShader, "g_viDimensions", new int[2] { w, h });
                     cmd.SetComputeIntParam(buildPerBigTileLightListShader, "_EnvLightIndexShift", m_lightList.lights.Count);
                     cmd.SetComputeIntParam(buildPerBigTileLightListShader, "g_iNrVisibLights", m_lightCount);
-                    Utilities.SetMatrixCS(cmd, buildPerBigTileLightListShader, "g_mScrProjection", projscr);
-                    Utilities.SetMatrixCS(cmd, buildPerBigTileLightListShader, "g_mInvScrProjection", invProjscr);
+                    cmd.SetComputeMatrixParam(buildPerBigTileLightListShader, "g_mScrProjection", projscr);
+                    cmd.SetComputeMatrixParam(buildPerBigTileLightListShader, "g_mInvScrProjection", invProjscr);
                     cmd.SetComputeFloatParam(buildPerBigTileLightListShader, "g_fNearPlane", camera.nearClipPlane);
                     cmd.SetComputeFloatParam(buildPerBigTileLightListShader, "g_fFarPlane", camera.farClipPlane);
                     cmd.SetComputeBufferParam(buildPerBigTileLightListShader, s_GenListPerBigTileKernel, "g_vLightList", s_BigTileLightList);
@@ -1588,8 +1588,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     cmd.SetComputeBufferParam(buildPerTileLightListShader, s_GenListPerTileKernel, "_LightVolumeData", s_LightVolumeDataBuffer);
                     cmd.SetComputeBufferParam(buildPerTileLightListShader, s_GenListPerTileKernel, "g_data", s_ConvexBoundsBuffer);
 
-                    Utilities.SetMatrixCS(cmd, buildPerTileLightListShader, "g_mScrProjection", projscr);
-                    Utilities.SetMatrixCS(cmd, buildPerTileLightListShader, "g_mInvScrProjection", invProjscr);
+                    cmd.SetComputeMatrixParam(buildPerTileLightListShader, "g_mScrProjection", projscr);
+                    cmd.SetComputeMatrixParam(buildPerTileLightListShader, "g_mInvScrProjection", invProjscr);
                     cmd.SetComputeTextureParam(buildPerTileLightListShader, s_GenListPerTileKernel, "g_depth_tex", cameraDepthBufferRT);
                     cmd.SetComputeBufferParam(buildPerTileLightListShader, s_GenListPerTileKernel, "g_vLightList", s_LightList);
                     if (m_TileSettings.enableBigTilePrepass)
@@ -2016,13 +2016,13 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                                 Matrix4x4 viewProjection = hdCamera.viewProjectionMatrix;
                                 Matrix4x4 invViewProjection = hdCamera.invViewProjectionMatrix;
 
-                                Utilities.SetMatrixCS(cmd, shadeOpaqueShader, "unity_MatrixV", worldToView);
-                                Utilities.SetMatrixCS(cmd, shadeOpaqueShader, "unity_MatrixInvV", viewToWorld);
-                                Utilities.SetMatrixCS(cmd, shadeOpaqueShader, "unity_MatrixVP", viewProjection);
+                                cmd.SetComputeMatrixParam(shadeOpaqueShader, "unity_MatrixV", worldToView);
+                                cmd.SetComputeMatrixParam(shadeOpaqueShader, "unity_MatrixInvV", viewToWorld);
+                                cmd.SetComputeMatrixParam(shadeOpaqueShader, "unity_MatrixVP", viewProjection);
 
-                                Utilities.SetMatrixCS(cmd, shadeOpaqueShader, "_InvViewProjMatrix", invViewProjection);
-                                Utilities.SetMatrixCS(cmd, shadeOpaqueShader, "_ViewProjMatrix", viewProjection);
-                                Utilities.SetMatrixCS(cmd, shadeOpaqueShader, "g_mInvScrProjection", Shader.GetGlobalMatrix("g_mInvScrProjection"));
+                                cmd.SetComputeMatrixParam(shadeOpaqueShader, "_InvViewProjMatrix", invViewProjection);
+                                cmd.SetComputeMatrixParam(shadeOpaqueShader, "_ViewProjMatrix", viewProjection);
+                                cmd.SetComputeMatrixParam(shadeOpaqueShader, "g_mInvScrProjection", Shader.GetGlobalMatrix("g_mInvScrProjection"));
                                 cmd.SetComputeVectorParam(shadeOpaqueShader, "_ScreenSize", hdCamera.screenSize);
                                 cmd.SetComputeIntParam(shadeOpaqueShader, "_UseTileLightList", Shader.GetGlobalInt("_UseTileLightList"));
 
