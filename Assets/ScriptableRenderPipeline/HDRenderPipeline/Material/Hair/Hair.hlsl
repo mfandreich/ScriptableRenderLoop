@@ -4,10 +4,20 @@
 
 // SurfaceData is define in Lit.cs which generate Lit.cs.hlsl
 #include "Hair.cs.hlsl"
+#include "../Lit/SubsurfaceScatteringProfile.cs.hlsl"
 
 SamplerState ltc_linear_clamp_sampler;
 // TODO: This one should be set into a constant Buffer at pass frequency (with _Screensize)
 TEXTURE2D(_PreIntegratedFGD);
+
+CBUFFER_START(UnitySSSParameters)
+uint   _EnableSSSAndTransmission;           // Globally toggles subsurface and transmission scattering on/off
+uint   _TexturingModeFlags;                 // 1 bit/profile; 0 = PreAndPostScatter, 1 = PostScatter
+uint   _TransmissionFlags;                  // 2 bit/profile; 0 = inf. thick, 1 = thin, 2 = regular
+float  _ThicknessRemaps[SSS_N_PROFILES][2]; // Remap: 0 = start, 1 = end - start
+float4 _ShapeParams[SSS_N_PROFILES];        // RGB = S = 1 / D, A = filter radius
+float4 _TransmissionTints[SSS_N_PROFILES];  // RGB = color, A = unused
+CBUFFER_END
 
 //-----------------------------------------------------------------------------
 // Helper functions/variable specific to this material
@@ -60,7 +70,29 @@ BSDFData ConvertSurfaceDataToBSDFData(SurfaceData surfaceData)
     BSDFData bsdfData;
     ZERO_INITIALIZE(BSDFData, bsdfData);
 
-    bsdfData.diffuseColor = surfaceData.diffuseColor;
+#ifdef FORWARD_SPLIT_LIGHTING
+    bool performPostScatterTexturing = IsBitSet(_TexturingModeFlags, 1 /* bsdfData.subsurfaceProfile */);
+
+    float3 color;
+
+    if (_EnableSSSAndTransmission > 0) // If we globally disable SSS effect, don't modify diffuseColor
+    {
+        // We modify the albedo here as this code is used by all lighting (including light maps and GI).
+        if (performPostScatterTexturing)
+        {
+            bsdfData.diffuseColor = float3(1.0, 1.0, 1.0);
+        }
+        else
+        {
+            bsdfData.diffuseColor = sqrt(surfaceData.diffuseColor);
+        }
+    }
+    else
+#endif
+    {
+        bsdfData.diffuseColor = surfaceData.diffuseColor;
+    }
+    
     bsdfData.specularOcclusion = surfaceData.specularOcclusion;
     bsdfData.normalWS = surfaceData.normalWS;
 
@@ -80,6 +112,18 @@ BSDFData ConvertSurfaceDataToBSDFData(SurfaceData surfaceData)
     ApplyDebugToBSDFData(bsdfData);
 
     return bsdfData;
+}
+
+// This must match lit.hlsl deferred layout for SSS
+float4 EncodeSplitLightingGBuffer0(SurfaceData surfaceData)
+{
+    return float4(surfaceData.diffuseColor, 1.0);
+}
+
+float4 EncodeSplitLightingGBuffer1(SurfaceData surfaceData)
+{
+    //return float4(surfaceData.subsurfaceRadius, surfaceData.thickness, 0, PackByte(surfaceData.subsurfaceProfile));
+    return float4(1.0, 1.0, 0, PackByte(1));
 }
 
 //-----------------------------------------------------------------------------

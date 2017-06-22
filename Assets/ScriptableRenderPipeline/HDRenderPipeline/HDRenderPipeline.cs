@@ -709,16 +709,19 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
                 RenderDeferredLighting(hdCamera, renderContext);
 
-                // We compute subsurface scattering here. Therefore, no objects rendered afterwards will exhibit SSS.
-                // Currently, there is no efficient way to switch between SRT and MRT for the forward pass;
-                // therefore, forward-rendered objects do not output split lighting required for the SSS pass.
-                CombineSubsurfaceScattering(hdCamera, renderContext, m_Asset.sssSettings);
-
                 // For opaque forward we have split rendering in two categories
                 // Material that are always forward and material that can be deferred or forward depends on render pipeline options (like switch to rendering forward only mode)
                 // Material that are always forward are unlit and complex (Like Hair) and don't require sorting, so it is ok to split them.
                 RenderForward(m_CullResults, camera, renderContext, true); // Render deferred or forward opaque
                 RenderForwardOnlyOpaque(m_CullResults, camera, renderContext);
+                RenderForwardOnlyOpaqueSplitLighting(m_CullResults, camera, renderContext);
+
+                // Set after to be compatible with forward opaque mesh
+
+                // We compute subsurface scattering here. Therefore, no objects rendered afterwards will exhibit SSS.
+                // Currently, there is no efficient way to switch between SRT and MRT for the forward pass;
+                // therefore, forward-rendered objects do not output split lighting required for the SSS pass.
+                CombineSubsurfaceScattering(hdCamera, renderContext, m_Asset.sssSettings);
 
                 RenderLightingDebug(hdCamera, renderContext, m_CameraColorBufferRT);
 
@@ -1015,6 +1018,27 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             using (new Utilities.ProfilingSample(passName, renderContext))
             {
                 Utilities.SetRenderTarget(renderContext, m_CameraColorBufferRT, m_CameraDepthStencilBufferRT);
+
+                m_LightLoop.RenderForward(camera, renderContext, true);
+
+                RenderOpaqueRenderList(cullResults, camera, renderContext, passName, Utilities.kRendererConfigurationBakedLighting);
+            }
+        }
+
+        void RenderForwardOnlyOpaqueSplitLighting(CullResults cullResults, Camera camera, ScriptableRenderContext renderContext)
+        {
+            string passName = "ForwardOnlyOpaqueSplitLighting";
+
+            using (new Utilities.ProfilingSample(passName, renderContext))
+            {
+                 RenderTargetIdentifier[] m_ColorMRTs = new RenderTargetIdentifier[4];
+
+                m_ColorMRTs[0] = m_CameraColorBufferRT;
+                m_ColorMRTs[1] = m_CameraSubsurfaceBufferRT;
+                m_ColorMRTs[2] = m_gbufferManager.GetGBuffers()[0];
+                m_ColorMRTs[3] = m_gbufferManager.GetGBuffers()[2];
+
+                Utilities.SetRenderTarget(renderContext, m_ColorMRTs, m_CameraDepthStencilBufferRT);
 
                 m_LightLoop.RenderForward(camera, renderContext, true);
 

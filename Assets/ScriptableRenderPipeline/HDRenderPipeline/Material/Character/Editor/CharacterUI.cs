@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Experimental.Rendering.HDPipeline;
@@ -97,6 +97,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             material.SetShaderPassEnabled("ShadowCaster",           false);
             material.SetShaderPassEnabled("Forward",                false);
             material.SetShaderPassEnabled("TransparentDepthWrite",  false);
+            material.SetShaderPassEnabled("ForwardOnlyOpaqueSplitLighting", false);
         }
 
         protected override void CharacterHairKeywordAndPass(Material material)
@@ -107,7 +108,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             material.SetShaderPassEnabled("ShadowCaster", true);
             material.SetShaderPassEnabled("Forward",      true);
             material.SetShaderPassEnabled("TransparentDepthWrite", material.GetFloat(kHairTransparentDepthWriteEnable) > 0.0f);
+            material.SetShaderPassEnabled("ForwardOnlyOpaqueSplitLighting", true);
+             material.SetShaderPassEnabled("ForwardOnlyOpaque", false);
 
+            material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Geometry;
+            /*
             //Keywords
             //------------------------
             material.SetOverrideTag("RenderType", "Transparent");
@@ -121,7 +126,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             SetKeyword(material, "_DOUBLESIDED_ON", true);
             SetKeyword(material, "_ALPHATEST_ON", material.GetFloat(kHairAlphaCutoffEnable) > 0.0f);
             SetKeyword(material, "_DETAIL_MAP", material.GetTexture(kHairDetailMap));
-
+            */
         }
 
         protected override void CharacterEyeKeywordAndPass(Material material)
@@ -129,6 +134,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             material.SetShaderPassEnabled("ShadowCaster",           false);
             material.SetShaderPassEnabled("Forward",                false);
             material.SetShaderPassEnabled("TransparentDepthWrite",  false);
+            material.SetShaderPassEnabled("ForwardOnlyOpaqueSplitLighting", false);
         }
     }
 }

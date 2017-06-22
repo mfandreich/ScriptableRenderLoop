@@ -19,9 +19,9 @@ MonoBehaviour:
   sssSettings:
     numProfiles: 3
     profiles:
-    - {fileID: 11400000, guid: 1a783144f63560747b4e5a802e88b253, type: 2}
-    - {fileID: 11400000, guid: ad5cfaa261c43ce4e8f177c28d210723, type: 2}
-    - {fileID: 11400000, guid: 8a6adbdbd53ffb84782f55dc495ca35e, type: 2}
+    - {fileID: 11400000, guid: d6ee4403015766f4093158d69216c0bf, type: 2}
+    - {fileID: 11400000, guid: 906339bac2066fc4aa22a3652e1283ef, type: 2}
+    - {fileID: 0}
     useDisneySSS: 0
   tileSettings:
     enableTileAndCluster: 1

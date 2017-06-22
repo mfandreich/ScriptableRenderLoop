@@ -204,6 +204,26 @@ Shader "HDRenderPipeline/ExperimentalHair"
 
         Pass
         {
+            Name "ForwardOnlyOpaqueDepthOnly"
+            Tags{ "LightMode" = "ForwardOnlyOpaqueDepthOnly" }
+
+            Cull[_CullMode]
+
+            ZWrite On
+
+            HLSLPROGRAM
+
+            #define SHADERPASS SHADERPASS_DEPTH_ONLY
+            #include "../../Material/Material.hlsl"
+            #include "ShaderPass/HairDepthPass.hlsl"
+            #include "HairData.hlsl"
+            #include "../../ShaderPass/ShaderPassDepthOnly.hlsl"
+
+            ENDHLSL
+        }
+
+        Pass
+        {
             Name "Motion Vectors"
             Tags{ "LightMode" = "MotionVectors" } // Caution, this need to be call like this to setup the correct parameters by C++ (legacy Unity)
 
@@ -281,6 +301,13 @@ Shader "HDRenderPipeline/ExperimentalHair"
             ZWrite [_ZWrite]
             Cull [_CullMode]
 
+            Stencil
+            {
+                Ref 2 // RegularLighting
+                Comp Always
+                Pass Replace
+            }
+
             HLSLPROGRAM
 
             #define SHADERPASS SHADERPASS_FORWARD
@@ -341,7 +368,40 @@ Shader "HDRenderPipeline/ExperimentalHair"
             #include "../../ShaderPass/ShaderPassDepthOnly.hlsl"
 
             ENDHLSL
-        }        
+        }      
+
+        Pass
+        {
+            Name "ForwardOnlyOpaqueSplitLighting" // Name is not used
+            Tags { "LightMode" = "ForwardOnlyOpaqueSplitLighting" } // This will be only for transparent object based on the RenderQueue index
+
+            Blend One One, One Zero
+            ZWrite [_ZWrite]
+            Cull [_CullMode]
+
+            Stencil
+            {
+                Ref 1 // SplitLighting
+                Comp Always
+                Pass Replace
+            }
+
+            HLSLPROGRAM
+
+            #define FORWARD_SPLIT_LIGHTING
+
+            #define SHADERPASS SHADERPASS_FORWARD
+            #include "../../Lighting/Forward.hlsl"
+            // TEMP until pragma work in include
+            #pragma multi_compile LIGHTLOOP_SINGLE_PASS LIGHTLOOP_TILE_PASS
+
+            #include "../../Lighting/Lighting.hlsl"
+            #include "ShaderPass/HairSharePass.hlsl"
+            #include "HairData.hlsl"
+            #include "../../ShaderPass/ShaderPassForward.hlsl"
+
+            ENDHLSL
+        }
     }
 
 	CustomEditor "Experimental.Rendering.HDPipeline.CharacterGUI"
