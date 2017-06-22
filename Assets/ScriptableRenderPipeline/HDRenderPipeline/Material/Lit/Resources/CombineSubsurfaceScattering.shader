@@ -86,26 +86,27 @@ Shader "Hidden/HDRenderPipeline/CombineSubsurfaceScattering"
             }
 
             // Computes F(x)/P(x), s.t. x = sqrt(r^2 + t^2).
-            float3 ComputeBilateralWeight(float3 S, float r, float t, float rcpPdf)
+            float3 ComputeBilateralWeight(float3 S, float r, float t, float rcpDistScale, float rcpPdf)
             {
             #if (SSS_BILATERAL == 0)
                 t = 0;
             #endif
-                float3 val = KernelValCircle(sqrt(r * r + t * t), S);
+                // Reducing the integration distance is equivalent to stretching the integration axis.
+                float3 val = KernelValCircle(sqrt(r * r + t * t) * rcpDistScale, S);
 
-                // Rescaling of the PDF is handled by 'totalWeight'.
+                // Rescaling of the PDF is handled via 'totalWeight'.
                 return val * rcpPdf;
             }
 
             #define SSS_ITER(i, n, kernel, profileID, shapeParam, centerPosUnSS, centerDepthVS, \
-                             millimPerUnit, pixelsPerMm, totalIrradiance, totalWeight)          \
+                    millimPerUnit, scaledPixPerMm, rcpDistScale, totalIrradiance, totalWeight)  \
             {                                                                                   \
                 float  r   = kernel[profileID][i][0];                                           \
                 /* The relative sample position is known at compile time. */                    \
                 float  phi = TWO_PI * Fibonacci2d(i, n).y;                                      \
                 float2 vec = r * float2(cos(phi), sin(phi));                                    \
                                                                                                 \
-                float2 position   = centerPosUnSS + vec * pixelsPerMm;                          \
+                float2 position   = centerPosUnSS + vec * scaledPixPerMm;                       \
                 float3 irradiance = LOAD_TEXTURE2D(_IrradianceSource, position).rgb;            \
                                                                                                 \
                 /* TODO: see if making this a [branch] improves performance. */                 \
@@ -117,7 +118,7 @@ Shader "Hidden/HDRenderPipeline/CombineSubsurfaceScattering"
                     float  d = LinearEyeDepth(z, _ZBufferParams);                               \
                     float  t = millimPerUnit * d - (millimPerUnit * centerDepthVS);             \
                     float  p = kernel[profileID][i][1];                                         \
-                    float3 w = ComputeBilateralWeight(shapeParam, r, t, p);                     \
+                    float3 w = ComputeBilateralWeight(shapeParam, r, t, rcpDistScale, p);       \
                                                                                                 \
                     totalIrradiance += w * irradiance;                                          \
                     totalWeight     += w;                                                       \
@@ -138,7 +139,7 @@ Shader "Hidden/HDRenderPipeline/CombineSubsurfaceScattering"
             }
 
             #define SSS_LOOP(n, kernel, profileID, shapeParam, centerPosUnSS, centerDepthVS,    \
-                             millimPerUnit, pixelsPerMm, totalIrradiance, totalWeight)          \
+                    millimPerUnit, scaledPixPerMm, rcpDistScale, totalIrradiance, totalWeight)  \
             {                                                                                   \
                 float  centerRcpPdf = kernel[profileID][0][1];                                  \
                 float3 centerWeight = KernelValCircle(0, shapeParam) * centerRcpPdf;            \
@@ -152,7 +153,7 @@ Shader "Hidden/HDRenderPipeline/CombineSubsurfaceScattering"
                 for (uint i = 1; i < n; i++)                                                    \
                 {                                                                               \
                     SSS_ITER(i, n, kernel, profileID, shapeParam, centerPosUnSS, centerDepthVS, \
-                             millimPerUnit, pixelsPerMm, totalIrradiance, totalWeight)          \
+                    millimPerUnit, scaledPixPerMm, rcpDistScale, totalIrradiance, totalWeight)  \
                 }                                                                               \
             }
 
@@ -200,24 +201,22 @@ Shader "Hidden/HDRenderPipeline/CombineSubsurfaceScattering"
                 float3 cornerPosVS = ComputeViewSpacePosition(cornerPosSS, centerDepth, _InvProjMatrix);
 
                 // Compute the view-space dimensions of the pixel as a quad projected onto geometry.
-                float2 unitsPerPixel = 2 * abs(cornerPosVS.xy - centerPosVS.xy);
+                float2 unitsPerPixel  = 2 * (cornerPosVS.xy - centerPosVS.xy);
             #ifdef SSS_MODEL_DISNEY
-                // Rescaling the filter is equivalent to inversely scaling the world.
-                float  metersPerUnit = _WorldScales[profileID] / distScale;
-                float  millimPerUnit = MILLIMETERS_PER_METER * metersPerUnit;
-                float2 pixelsPerMm   = rcp(millimPerUnit * unitsPerPixel);
+                float  metersPerUnit  = _WorldScales[profileID];
+                float  millimPerUnit  = MILLIMETERS_PER_METER * metersPerUnit;
+                float2 scaledPixPerMm = distScale * rcp(millimPerUnit * unitsPerPixel);
 
                 // Take the first (central) sample.
                 // TODO: copy its neighborhood into LDS.
                 float2 centerPosition   = posInput.unPositionSS;
                 float3 centerIrradiance = LOAD_TEXTURE2D(_IrradianceSource, centerPosition).rgb;
 
+                float  maxDistInPixels  = maxDistance * max(scaledPixPerMm.x, scaledPixPerMm.y);
 
                 // We perform point sampling. Therefore, we can avoid the cost
                 // of filtering if we stay within the bounds of the current pixel.
                 // We use the value of 1 instead of 0.5 as an optimization.
-                float maxDistInPixels = maxDistance * max(pixelsPerMm.x, pixelsPerMm.y);
-
                 [branch]
                 if (distScale == 0 || maxDistInPixels < 1)
                 {
@@ -240,7 +239,8 @@ Shader "Hidden/HDRenderPipeline/CombineSubsurfaceScattering"
                     #else
                         SSS_LOOP(SSS_N_SAMPLES_FAR_FIELD, _FilterKernelsFarField,
                                  profileID, shapeParam, centerPosition, centerPosVS.z,
-                                 millimPerUnit, pixelsPerMm, totalIrradiance, totalWeight)
+                                 millimPerUnit, scaledPixPerMm, rcp(distScale),
+                                 totalIrradiance, totalWeight)
                     #endif
                 }
                 else
@@ -250,29 +250,32 @@ Shader "Hidden/HDRenderPipeline/CombineSubsurfaceScattering"
                     #else
                         SSS_LOOP(SSS_N_SAMPLES_NEAR_FIELD, _FilterKernelsNearField,
                                  profileID, shapeParam, centerPosition, centerPosVS.z,
-                                 millimPerUnit, pixelsPerMm, totalIrradiance, totalWeight)
+                                 millimPerUnit, scaledPixPerMm, rcp(distScale),
+                                 totalIrradiance, totalWeight)
                     #endif
                 }
             #else
-                // Rescaling the filter is equivalent to inversely scaling the world.
-                float  metersPerUnit = _WorldScales[profileID] / distScale * SSS_BASIC_DISTANCE_SCALE;
-                float  centimPerUnit = CENTIMETERS_PER_METER * metersPerUnit;
-                float2 pixelsPerCm   = rcp(centimPerUnit * unitsPerPixel);
+                float  metersPerUnit  = _WorldScales[profileID] * SSS_BASIC_DISTANCE_SCALE;
+                float  centimPerUnit  = CENTIMETERS_PER_METER * metersPerUnit;
+                float2 scaledPixPerCm = distScale * rcp(centimPerUnit * unitsPerPixel);
+                float  unitScale      = centimPerUnit / distScale;
 
                 // Compute the filtering direction.
             #ifdef SSS_FILTER_HORIZONTAL_AND_COMBINE
-                float2 unitDirection = float2(1, 0);
+                float  scaledStepSize = scaledPixPerCm.x;
+                float2 unitDirection  = float2(1, 0);
             #else
-                float2 unitDirection = float2(0, 1);
+                float  scaledStepSize = scaledPixPerCm.y;
+                float2 unitDirection  = float2(0, 1);
             #endif
 
-                float2   scaledDirection  = pixelsPerCm * unitDirection;
+                float2   scaledDirection  = scaledPixPerCm * unitDirection;
                 float    phi              = 0; // Random rotation; unused for now
                 float2x2 rotationMatrix   = float2x2(cos(phi), -sin(phi), sin(phi), cos(phi));
                 float2   rotatedDirection = mul(rotationMatrix, scaledDirection);
 
                 // Load (1 / (2 * WeightedVariance)) for bilateral weighting.
-            #if RBG_BILATERAL_WEIGHTS
+            #if (RBG_BILATERAL_WEIGHTS != 0)
                 float3 halfRcpVariance = _HalfRcpWeightedVariances[profileID].rgb;
             #else
                 float  halfRcpVariance = _HalfRcpWeightedVariances[profileID].a;
@@ -290,7 +293,7 @@ Shader "Hidden/HDRenderPipeline/CombineSubsurfaceScattering"
                 // We perform point sampling. Therefore, we can avoid the cost
                 // of filtering if we stay within the bounds of the current pixel.
                 // We use the value of 1 instead of 0.5 as an optimization.
-                float maxDistInPixels = maxDistance * max(pixelsPerCm.x, pixelsPerCm.y);
+                float maxDistInPixels = scaledStepSize * maxDistance;
 
                 [branch]
                 if (distScale == 0 || maxDistInPixels < 1)
@@ -312,15 +315,13 @@ Shader "Hidden/HDRenderPipeline/CombineSubsurfaceScattering"
                     [flatten]
                     if (any(sampleIrradiance))
                     {
-                    #if SSS_BILATERAL
                         // Apply bilateral weighting.
                         // Ref #1: Skin Rendering by Pseudo–Separable Cross Bilateral Filtering.
                         // Ref #2: Separable SSS, Supplementary Materials, Section E.
                         float rawDepth    = LOAD_TEXTURE2D(_MainDepthTexture, samplePosition).r;
                         float sampleDepth = LinearEyeDepth(rawDepth, _ZBufferParams);
-                        float zDistance   = centimPerUnit * sampleDepth - (centimPerUnit * centerPosVS.z);
+                        float zDistance   = unitScale * sampleDepth - (unitScale * centerPosVS.z);
                         sampleWeight     *= exp(-zDistance * zDistance * halfRcpVariance);
-                    #endif
 
                         totalIrradiance += sampleWeight * sampleIrradiance;
                         totalWeight     += sampleWeight;

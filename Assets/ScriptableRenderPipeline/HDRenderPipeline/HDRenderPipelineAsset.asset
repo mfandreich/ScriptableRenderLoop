@@ -19,10 +19,10 @@ MonoBehaviour:
   sssSettings:
     numProfiles: 3
     profiles:
-    - {fileID: 11400000, guid: 906339bac2066fc4aa22a3652e1283ef, type: 2}
-    - {fileID: 11400000, guid: b378ec8b14e770f48a085d537053adfe, type: 2}
-    - {fileID: 11400000, guid: 02c3836a8d1b4544a97f00fa528bb487, type: 2}
-    useDisneySSS: 1
+    - {fileID: 11400000, guid: 1a783144f63560747b4e5a802e88b253, type: 2}
+    - {fileID: 11400000, guid: ad5cfaa261c43ce4e8f177c28d210723, type: 2}
+    - {fileID: 11400000, guid: 8a6adbdbd53ffb84782f55dc495ca35e, type: 2}
+    useDisneySSS: 0
   tileSettings:
     enableTileAndCluster: 1
     enableSplitLightEvaluation: 1
