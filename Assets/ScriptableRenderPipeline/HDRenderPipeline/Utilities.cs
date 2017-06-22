@@ -53,13 +53,13 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         public static void SetRenderTarget(ScriptableRenderContext renderContext, RenderTargetIdentifier buffer, ClearFlag clearFlag, Color clearColor, int miplevel = 0, CubemapFace cubemapFace = CubemapFace.Unknown)
         {
-            var cmd = new CommandBuffer();
+            var cmd = CommandBufferPool.Get();
             cmd.name = "";
             cmd.SetRenderTarget(buffer, miplevel, cubemapFace);
             if (clearFlag != ClearFlag.ClearNone)
                 cmd.ClearRenderTarget((clearFlag & ClearFlag.ClearDepth) != 0, (clearFlag & ClearFlag.ClearColor) != 0, clearColor);
             renderContext.ExecuteCommandBuffer(cmd);
-            cmd.Dispose();
+            CommandBufferPool.Release(cmd);
         }
 
         public static void SetRenderTarget(ScriptableRenderContext renderContext, RenderTargetIdentifier buffer, ClearFlag clearFlag = ClearFlag.ClearNone, int miplevel = 0, CubemapFace cubemapFace = CubemapFace.Unknown)
@@ -79,13 +79,13 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         public static void SetRenderTarget(ScriptableRenderContext renderContext, RenderTargetIdentifier colorBuffer, RenderTargetIdentifier depthBuffer, ClearFlag clearFlag, Color clearColor, int miplevel = 0, CubemapFace cubemapFace = CubemapFace.Unknown)
         {
-            var cmd = new CommandBuffer();
+            var cmd = CommandBufferPool.Get();
             cmd.name = "";
             cmd.SetRenderTarget(colorBuffer, depthBuffer, miplevel, cubemapFace);
             if (clearFlag != ClearFlag.ClearNone)
                 cmd.ClearRenderTarget((clearFlag & ClearFlag.ClearDepth) != 0, (clearFlag & ClearFlag.ClearColor) != 0, clearColor);
             renderContext.ExecuteCommandBuffer(cmd);
-            cmd.Dispose();
+            CommandBufferPool.Release(cmd);
         }
 
         public static void SetRenderTarget(ScriptableRenderContext renderContext, RenderTargetIdentifier[] colorBuffers, RenderTargetIdentifier depthBuffer)
@@ -100,18 +100,18 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         public static void SetRenderTarget(ScriptableRenderContext renderContext, RenderTargetIdentifier[] colorBuffers, RenderTargetIdentifier depthBuffer, ClearFlag clearFlag, Color clearColor)
         {
-            var cmd = new CommandBuffer();
+            var cmd = CommandBufferPool.Get();
             cmd.name = "";
             cmd.SetRenderTarget(colorBuffers, depthBuffer);
             if (clearFlag != ClearFlag.ClearNone)
                 cmd.ClearRenderTarget((clearFlag & ClearFlag.ClearDepth) != 0, (clearFlag & ClearFlag.ClearColor) != 0, clearColor);
             renderContext.ExecuteCommandBuffer(cmd);
-            cmd.Dispose();
+            
         }
 
         public static void ClearCubemap(ScriptableRenderContext renderContext, RenderTargetIdentifier buffer, Color clearColor)
         {
-            var cmd = new CommandBuffer();
+            var cmd = CommandBufferPool.Get();
             cmd.name = "";
 
             for(int i = 0 ; i < 6 ; ++i)
@@ -120,7 +120,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             }
 
             renderContext.ExecuteCommandBuffer(cmd);
-            cmd.Dispose();
+            CommandBufferPool.Release(cmd);
         }
 
         // Miscellanous
@@ -195,48 +195,44 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             return sb.ToString();
         }
 
-        public class ProfilingSample
+        public struct ProfilingSample
             : IDisposable
         {
-            bool        disposed = false;
+            bool        disposed;
             ScriptableRenderContext  renderContext;
             string      name;
 
             public ProfilingSample(string _name, ScriptableRenderContext _renderloop)
             {
                 renderContext = _renderloop;
+                disposed = false;
                 name = _name;
 
-                CommandBuffer cmd = new CommandBuffer();
+                CommandBuffer cmd = CommandBufferPool.Get();
                 cmd.name = "";
                 cmd.BeginSample(name);
                 renderContext.ExecuteCommandBuffer(cmd);
-                cmd.Dispose();
+                CommandBufferPool.Release(cmd);
             }
-
-            ~ProfilingSample()
-            {
-                Dispose(false);
-            }
-
+            
             public void Dispose()
             {
                 Dispose(true);
             }
 
             // Protected implementation of Dispose pattern.
-            protected virtual void Dispose(bool disposing)
+            void Dispose(bool disposing)
             {
                 if (disposed)
                     return;
 
                 if (disposing)
                 {
-                    CommandBuffer cmd = new CommandBuffer();
+                    CommandBuffer cmd = CommandBufferPool.Get();
                     cmd.name = "";
                     cmd.EndSample(name);
                     renderContext.ExecuteCommandBuffer(cmd);
-                    cmd.Dispose();
+                    CommandBufferPool.Release(cmd);
                 }
 
                 disposed = true;
@@ -253,77 +249,43 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             return gpuVP;
         }
 
-        public static HDCamera GetHDCamera(Camera camera)
-        {
-            HDCamera hdCamera = new HDCamera();
-            hdCamera.camera = camera;
-            hdCamera.screenSize = new Vector4(camera.pixelWidth, camera.pixelHeight, 1.0f / camera.pixelWidth, 1.0f / camera.pixelHeight);
-
-            // The actual projection matrix used in shaders is actually massaged a bit to work across all platforms
-            // (different Z value ranges etc.)
-            var gpuProj = GL.GetGPUProjectionMatrix(camera.projectionMatrix, false);
-            var gpuVP = gpuProj * camera.worldToCameraMatrix;
-
-            // Ref: An Efficient Depth Linearization Method for Oblique View Frustums, Eq. 6.
-            Vector4 invProjectionParam = new Vector4(gpuProj.m20 / (gpuProj.m00 * gpuProj.m23),
-                    gpuProj.m21 / (gpuProj.m11 * gpuProj.m23),
-                    -1.0f / gpuProj.m23,
-                    (-gpuProj.m22
-                     + gpuProj.m20 * gpuProj.m02 / gpuProj.m00
-                     + gpuProj.m21 * gpuProj.m12 / gpuProj.m11) / gpuProj.m23);
-
-            hdCamera.viewProjectionMatrix    = gpuVP;
-            hdCamera.invViewProjectionMatrix = gpuVP.inverse;
-            hdCamera.invProjectionMatrix     = gpuProj.inverse;
-            hdCamera.invProjectionParam      = invProjectionParam;
-
-            return hdCamera;
-        }
-
-        public static void SetupMaterialHDCamera(HDCamera hdCamera, Material material)
-        {
-            material.SetVector("_ScreenSize",        hdCamera.screenSize);
-            material.SetMatrix("_ViewProjMatrix",    hdCamera.viewProjectionMatrix);
-            material.SetMatrix("_InvViewProjMatrix", hdCamera.invViewProjectionMatrix);
-            material.SetMatrix("_InvProjMatrix",     hdCamera.invProjectionMatrix);
-            material.SetVector("_InvProjParam",      hdCamera.invProjectionParam);
-        }
-
         // TEMP: These functions should be implemented C++ side, for now do it in C#
+        static List<float> m_FloatListdata = new List<float>();
         public static void SetMatrixCS(CommandBuffer cmd, ComputeShader shadercs, string name, Matrix4x4 mat)
         {
-            var data = new float[16];
+            m_FloatListdata.Clear();
 
             for (int c = 0; c < 4; c++)
                 for (int r = 0; r < 4; r++)
-                    data[4 * c + r] = mat[r, c];
+                    m_FloatListdata.Add(mat[r, c]);
 
-            cmd.SetComputeFloatParams(shadercs, name, data);
+            cmd.SetComputeFloatParams(shadercs, name, m_FloatListdata);
         }
 
         public static void SetMatrixArrayCS(CommandBuffer cmd, ComputeShader shadercs, string name, Matrix4x4[] matArray)
         {
             int numMatrices = matArray.Length;
-            var data = new float[numMatrices * 16];
 
+            m_FloatListdata.Clear();
+            
             for (int n = 0; n < numMatrices; n++)
                 for (int c = 0; c < 4; c++)
                     for (int r = 0; r < 4; r++)
-                        data[16 * n + 4 * c + r] = matArray[n][r, c];
+                        m_FloatListdata.Add(matArray[n][r, c]);
 
-            cmd.SetComputeFloatParams(shadercs, name, data);
+            cmd.SetComputeFloatParams(shadercs, name, m_FloatListdata);
         }
 
         public static void SetVectorArrayCS(CommandBuffer cmd, ComputeShader shadercs, string name, Vector4[] vecArray)
         {
             int numVectors = vecArray.Length;
-            var data = new float[numVectors * 4];
+            m_FloatListdata.Clear();
 
             for (int n = 0; n < numVectors; n++)
                 for (int i = 0; i < 4; i++)
-                    data[4 * n + i] = vecArray[n][i];
+                    m_FloatListdata.Add(vecArray[n][i]);
 
-            cmd.SetComputeFloatParams(shadercs, name, data);
+            cmd.SetComputeFloatParams(shadercs, name, m_FloatListdata);
         }
 
         public static void SetKeyword(Material m, string keyword, bool state)
@@ -358,7 +320,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             RenderTargetIdentifier colorBuffer,
             MaterialPropertyBlock properties = null, int shaderPassID = 0)
         {
-            SetupMaterialHDCamera(camera, material);
+            camera.SetupMaterial(material);
             commandBuffer.SetRenderTarget(colorBuffer);
             commandBuffer.DrawProcedural(Matrix4x4.identity, material, shaderPassID, MeshTopology.Triangles, 3, 1, properties);
         }
@@ -368,7 +330,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             RenderTargetIdentifier colorBuffer, RenderTargetIdentifier depthStencilBuffer,
             MaterialPropertyBlock properties = null, int shaderPassID = 0)
         {
-            SetupMaterialHDCamera(camera, material);
+            camera.SetupMaterial(material);
             commandBuffer.SetRenderTarget(colorBuffer, depthStencilBuffer);
             commandBuffer.DrawProcedural(Matrix4x4.identity, material, shaderPassID, MeshTopology.Triangles, 3, 1, properties);
         }
@@ -378,7 +340,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             RenderTargetIdentifier[] colorBuffers, RenderTargetIdentifier depthStencilBuffer,
             MaterialPropertyBlock properties = null, int shaderPassID = 0)
         {
-            SetupMaterialHDCamera(camera, material);
+            camera.SetupMaterial(material);
             commandBuffer.SetRenderTarget(colorBuffers, depthStencilBuffer);
             commandBuffer.DrawProcedural(Matrix4x4.identity, material, shaderPassID, MeshTopology.Triangles, 3, 1, properties);
         }
