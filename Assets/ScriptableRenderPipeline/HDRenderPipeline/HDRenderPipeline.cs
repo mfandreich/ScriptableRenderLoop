@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine.Rendering;
 using System;
 using System.Linq;
@@ -731,7 +731,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
                 RenderSky(hdCamera, renderContext);
 
-                RenderForwardTransparentDepthWrite(cullResults, camera, renderContext);
+                RenderForwardTransparentDepthWrite(m_CullResults, camera, renderContext);
 
                 // Render all type of transparent forward (unlit, lit, complex (hair...)) to keep the sorting between transparent objects.
                 RenderForward(m_CullResults, camera, renderContext, false);
