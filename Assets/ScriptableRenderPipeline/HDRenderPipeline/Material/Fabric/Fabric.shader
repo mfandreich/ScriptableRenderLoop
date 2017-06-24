@@ -10,6 +10,9 @@ Shader "HDRenderPipeline/ExperimentalFabric"
         _BaseColorMap("BaseColorMap", 2D) = "white" {}
 
         _Smoothness("Smoothness", Range(0.0, 1.0)) = 1.0
+
+        _FuzzTint("FuzzTint", Color) = (1.0, 1.0, 1.0)
+
         _MaskMap("MaskMap", 2D) = "white" {}
 
         _SpecularOcclusionMap("SpecularOcclusion", 2D) = "white" {}
@@ -186,6 +189,40 @@ Shader "HDRenderPipeline/ExperimentalFabric"
 
         Pass
         {
+            Name "ForwardOnlyOpaqueSplitLighting"
+            Tags { "LightMode"="ForwardOnlyOpaqueSplitLighting" }
+
+            Blend One One, One Zero
+            ZWrite [_ZWrite]
+            Cull [_CullMode]
+
+            Stencil
+            {
+                Ref 1
+                Comp Always
+                Pass Replace
+            }
+
+            HLSLPROGRAM
+
+            #define FORWARD_SPLIT_LIGHTING
+
+            #define SHADERPASS SHADERPASS_FORWARD
+            #include "../../Lighting/Forward.hlsl"
+            #pragma multi_compile LIGHTLOOP_SINGLE_PASS LIGHTLOOP_TILE_PASS
+
+            #include "../../Lighting/Lighting.hlsl"
+            #include "ShaderPass/FabricSharePass.hlsl"
+            #include "FabricData.hlsl"
+            #include "../../ShaderPass/ShaderPassForward.hlsl"
+
+            ENDHLSL
+
+        }
+
+        /*
+        Pass
+        {
             Name "ForwardOnlyOpaque" // Name is not used
             Tags { "LightMode" = "ForwardOnlyOpaque" } // This will be only for transparent object based on the RenderQueue index
 
@@ -206,7 +243,7 @@ Shader "HDRenderPipeline/ExperimentalFabric"
             #include "../../ShaderPass/ShaderPassForward.hlsl"
 
             ENDHLSL
-        }
+        }*/
 
         Pass
         {
@@ -227,60 +264,6 @@ Shader "HDRenderPipeline/ExperimentalFabric"
 
             ENDHLSL
         }
-
-/*
-        Pass
-        {
-            Name "GBuffer"  // Name is not used
-            Tags { "LightMode" = "GBuffer" } // This will be only for opaque object based on the RenderQueue index
-
-            Cull [_CullMode]
-
-            Stencil
-            {
-                Ref  [_StencilRef]
-                Comp Always
-                Pass Replace
-            }
-
-            HLSLPROGRAM
-
-            #define SHADERPASS SHADERPASS_GBUFFER
-            #include "../../Material/Material.hlsl"
-            #include "ShaderPass/FabricSharePass.hlsl"
-            #include "FabricData.hlsl"
-            #include "../../ShaderPass/ShaderPassGBuffer.hlsl"
-
-            ENDHLSL
-        }
-
-        Pass
-        {
-            Name "GBufferDebugDisplay"  // Name is not used
-            Tags{ "LightMode" = "GBufferDebugDisplay" } // This will be only for opaque object based on the RenderQueue index
-
-            Cull [_CullMode]
-
-            Stencil
-            {
-                Ref  [_StencilRef]
-                Comp Always
-                Pass Replace
-            }
-
-            HLSLPROGRAM
-
-            #define DEBUG_DISPLAY
-            #define SHADERPASS SHADERPASS_GBUFFER
-            #include "../../Debug/DebugDisplay.hlsl"
-            #include "../../Material/Material.hlsl"
-            #include "ShaderPass/FabricSharePass.hlsl"
-            #include "FabricData.hlsl"
-            #include "../../ShaderPass/ShaderPassGBuffer.hlsl"
-
-            ENDHLSL
-        }
-*/
 
         // Extracts information for lightmapping, GI (emission, albedo, ...)
         // This pass it not used during regular rendering.
@@ -356,6 +339,13 @@ Shader "HDRenderPipeline/ExperimentalFabric"
             Cull[_CullMode]
 
             ZWrite Off // TODO: Test Z equal here.
+
+            Stencil
+            {
+                Ref 2
+                Comp Always
+                Pass Replace
+            }
 
             HLSLPROGRAM
 
