@@ -3,6 +3,7 @@ CBUFFER_START(_PerMaterial)
 // shared constant between lit and layered lit
 float _AlphaCutoff;
 float4 _DoubleSidedConstants;
+float3 _FuzzTint;
 
 float _HorizonFade;
 

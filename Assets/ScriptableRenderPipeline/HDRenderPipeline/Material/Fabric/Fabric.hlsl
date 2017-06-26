@@ -54,13 +54,14 @@ TEXTURE2D_ARRAY(_LtcData); // We pack the 3 Ltc data inside a texture array
 #define SSS_WRAP_ANGLE (PI/12)              // Used for wrap lighting
 #define SSS_WRAP_LIGHT cos(PI/2 - SSS_WRAP_ANGLE)
 
+CBUFFER_START(UnitySSSParameters)
 uint   _EnableSSSAndTransmission;           // Globally toggles subsurface and transmission scattering on/off
 uint   _TexturingModeFlags;                 // 1 bit/profile; 0 = PreAndPostScatter, 1 = PostScatter
 uint   _TransmissionFlags;                  // 2 bit/profile; 0 = inf. thick, 1 = thin, 2 = regular
 float  _ThicknessRemaps[SSS_N_PROFILES][2]; // Remap: 0 = start, 1 = end - start
 float4 _ShapeParams[SSS_N_PROFILES];        // RGB = S = 1 / D, A = filter radius
 float4 _TransmissionTints[SSS_N_PROFILES];  // RGB = color, A = unused
-
+CBUFFER_END
 											//-----------------------------------------------------------------------------
 											// Helper functions/variable specific to this material
 											//-----------------------------------------------------------------------------
@@ -191,24 +192,44 @@ BSDFData ConvertSurfaceDataToBSDFData(SurfaceData surfaceData)
 	bsdfData.roughness = PerceptualRoughnessToRoughness(bsdfData.perceptualRoughness);
 	bsdfData.materialId = surfaceData.materialId;
 
-	if (bsdfData.materialId == MATERIALID_LIT_STANDARD)
-	{
-		FillMaterialIdStandardData(surfaceData.baseColor, surfaceData.specular, 0, bsdfData.roughness, surfaceData.normalWS, surfaceData.tangentWS, surfaceData.anisotropy, bsdfData);
-		bsdfData.materialId = surfaceData.anisotropy > 0.0 ? MATERIALID_LIT_ANISO : bsdfData.materialId;
-	}
-	else if (bsdfData.materialId == MATERIALID_LIT_SSS)
-	{
-		FillMaterialIdSSSData(surfaceData.baseColor, surfaceData.subsurfaceProfile, surfaceData.subsurfaceRadius, surfaceData.thickness, bsdfData);
-	}
-	else if (bsdfData.materialId == MATERIALID_LIT_SPECULAR)
-	{
-		bsdfData.diffuseColor = surfaceData.baseColor;
-		bsdfData.fresnel0 = surfaceData.specularColor;
-	}
-
+	FillMaterialIdStandardData(surfaceData.baseColor, surfaceData.specular, 0, bsdfData.roughness, surfaceData.normalWS, surfaceData.tangentWS, surfaceData.anisotropy, bsdfData);
+	bsdfData.materialId = surfaceData.anisotropy > 0.0 ? MATERIALID_LIT_ANISO : bsdfData.materialId;
+	
 	ApplyDebugToBSDFData(bsdfData);
 
+#ifdef FORWARD_SPLIT_LIGHTING
+	bool performPostScatterTexturing = IsBitSet(_TexturingModeFlags, 1 /*bsdfData.subsurfaceProfile*/);
+
+	float3 color;
+
+	if(_EnableSSSAndTransmission > 0)
+	{
+		if(performPostScatterTexturing)
+		{
+			bsdfData.diffuseColor = float3(1.0, 1.0, 1.0);
+		}
+		else
+		{
+			bsdfData.diffuseColor = sqrt(surfaceData.baseColor);
+		}
+	}
+	else
+#endif
+	{
+		bsdfData.diffuseColor = surfaceData.baseColor;
+	}
+
 	return bsdfData;
+}
+
+float4 EncodeSplitLightingGBuffer0(SurfaceData surfaceData)
+{
+	return float4(surfaceData.baseColor, 1.0);
+}
+
+float4 EncodeSplitLightingGBuffer1(SurfaceData surfaceData)
+{
+	return float4(1.0, 1.0, 0.0, PackByte(2)); //TODO: Fabric UI
 }
 
 //-----------------------------------------------------------------------------
@@ -648,14 +669,14 @@ void BSDF_CottonWool(float3 V, float3 L, float3 positionWS, PreLightData preLigh
 
 	NdotV = max(NdotV, MIN_N_DOT_V);             // Use the modified (clamped) version
 
-	float3 F = F_Schlick(bsdfData.fresnel0, LdotH);
+	float3 F = F_Schlick(0.2, LdotH);
 
 	float Vis;
 	float D;
 	// TODO: this way of handling aniso may not be efficient, or maybe with material classification, need to check perf here
 	// Maybe always using aniso maybe a win ?
 	float3 H = (L + V) * invLenLV;
-	bsdfData.roughness = ClampRoughnessForAnalyticalLights(bsdfData.roughness);
+	bsdfData.roughness = 1- ClampRoughnessForAnalyticalLights(bsdfData.roughness);
 	float roughnessSq = bsdfData.roughness*bsdfData.roughness;
 	float cnorm = 1.0 / (PI * (4.0 * roughnessSq + 1.0));
 
@@ -674,7 +695,7 @@ void BSDF_CottonWool(float3 V, float3 L, float3 positionWS, PreLightData preLigh
 
 	float NdotLwrap = sqrt(NdotL);
 		
-	specularLighting = NdotLwrap * (F * D * Vis);
+	specularLighting = NdotLwrap*F *(Vis * D)*_FuzzTint;
 
 #ifdef LIT_DIFFUSE_LAMBERT_BRDF
 	float  diffuseTerm = Lambert();
@@ -684,7 +705,7 @@ void BSDF_CottonWool(float3 V, float3 L, float3 positionWS, PreLightData preLigh
 	float  diffuseTerm = DisneyDiffuse(NdotV, NdotL, LdotH, bsdfData.perceptualRoughness);
 #endif
 
-	diffuseLighting = bsdfData.diffuseColor * diffuseTerm;
+	diffuseLighting = bsdfData.diffuseColor * diffuseTerm*lerp(1,0.5,bsdfData.roughness);
 }
 
 void BSDF_Silk(float3 V, float3 L, float3 positionWS, PreLightData preLightData, BSDFData bsdfData,
@@ -741,7 +762,7 @@ void BSDF_Silk(float3 V, float3 L, float3 positionWS, PreLightData preLightData,
 #endif
 		D = D_GGX(NdotH, bsdfData.roughness);
 	}
-	specularLighting = F * (Vis * D);
+	specularLighting = F * (Vis * D)*_FuzzTint;
 
 #ifdef LIT_DIFFUSE_LAMBERT_BRDF
 	float  diffuseTerm = Lambert();

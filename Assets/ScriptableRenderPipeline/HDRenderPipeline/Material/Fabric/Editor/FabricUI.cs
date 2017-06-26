@@ -19,7 +19,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             public static GUIContent smoothnessMapChannelText = new GUIContent("Smoothness Source", "Smoothness texture and channel");
             public static GUIContent smoothnessText = new GUIContent("Smoothness", "Smoothness scale factor");
-            public static GUIContent maskMapESText = new GUIContent("Mask Map - M(R), AO(G), E(B), S(A)", "Mask map");
+			public static GUIContent fuzzTintText = new GUIContent("Fuzz Tint", "");
+			public static GUIContent maskMapESText = new GUIContent("Mask Map - M(R), AO(G), E(B), S(A)", "Mask map");
             public static GUIContent maskMapSText = new GUIContent("Mask Map - M(R), AO(G), S(A)", "Mask map");
 
             public static GUIContent normalMapSpaceText = new GUIContent("Normal/Tangent Map space", "");
@@ -123,6 +124,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected const string kBaseColorMap = "_BaseColorMap";
         protected MaterialProperty smoothness = null;
         protected const string kSmoothness = "_Smoothness";
+		protected MaterialProperty fuzzTint = null;
+		protected const string kFuzzTint = "_FuzzTint";
         protected MaterialProperty maskMap = null;
         protected const string kMaskMap = "_MaskMap";
         protected MaterialProperty specularOcclusionMap = null;
@@ -197,7 +200,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             baseColor = FindProperty(kBaseColor, props);
             baseColorMap = FindProperty(kBaseColorMap, props);
             smoothness = FindProperty(kSmoothness, props);
-            maskMap = FindProperty(kMaskMap, props);
+			fuzzTint = FindProperty(kFuzzTint, props);
+			maskMap = FindProperty(kMaskMap, props);
             specularOcclusionMap = FindProperty(kSpecularOcclusionMap, props);
             normalMap = FindProperty(kNormalMap, props);
             normalMapOS = FindProperty(kNormalMapOS, props);
@@ -309,6 +313,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             EditorGUI.indentLevel++;
             m_MaterialEditor.ShaderProperty(fabricType, Styles.fabricTypeText);
             EditorGUI.indentLevel--;
+			m_MaterialEditor.ShaderProperty(fuzzTint, Styles.fuzzTintText);
 
             bool useEmissiveMask = (EmissiveColorMode)emissiveColorMode.floatValue == EmissiveColorMode.UseEmissiveMask;
 
