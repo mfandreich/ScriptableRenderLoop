@@ -107,6 +107,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             }
         }
 
+        CullResults m_CullResults;
         public override void Render(ScriptableRenderContext context, Camera[] cameras)
         {
             base.Render(context, cameras);
@@ -118,29 +119,29 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
                     continue;
 
                 cullingParameters.shadowDistance = Mathf.Min(m_ShadowSettings.maxShadowDistance, camera.farClipPlane);
-                CullResults cullResults = CullResults.Cull(ref cullingParameters, context);
+                CullResults.Cull(ref cullingParameters, context,ref m_CullResults);
 
-                VisibleLight[] visibleLights = cullResults.visibleLights;
+                VisibleLight[] visibleLights = m_CullResults.visibleLights.ToArray();
 
                 LightData lightData;
                 InitializeLightData(visibleLights, out lightData);
 
                 // Render Shadow Map
                 if (lightData.shadowLightIndex > -1) 
-                    lightData.shadowsRendered = RenderShadows(ref cullResults, ref visibleLights[lightData.shadowLightIndex], lightData.shadowLightIndex, ref context);
+                    lightData.shadowsRendered = RenderShadows(ref m_CullResults, ref visibleLights[lightData.shadowLightIndex], lightData.shadowLightIndex, ref context);
 
                 // Setup camera matrices and RT
                 context.SetupCameraProperties(camera);
 
                 // Clear RenderTarget to avoid tile initialization on mobile GPUs
                 // https://community.arm.com/graphics/b/blog/posts/mali-performance-2-how-to-correctly-handle-framebuffers
-                var cmd = new CommandBuffer() { name = "Clear" };
+                var cmd = CommandBufferPool.Get("Clear");
                 cmd.ClearRenderTarget(true, true, camera.backgroundColor);
                 context.ExecuteCommandBuffer(cmd);
-                cmd.Dispose();
+                CommandBufferPool.Release(cmd);
 
                 // Setup light and shadow shader constants
-                SetupShaderLightConstants(visibleLights, ref lightData, ref cullResults, ref context);
+                SetupShaderLightConstants(visibleLights, ref lightData, ref m_CullResults, ref context);
                 if (lightData.shadowsRendered)
                     SetupShadowShaderConstants(ref context, ref visibleLights[lightData.shadowLightIndex], lightData.shadowLightIndex, m_ShadowCasterCascadesCount);
                 SetShaderKeywords(ref lightData, ref context);
@@ -156,22 +157,22 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
                     configuration |= RendererConfiguration.ProvideLightIndices;
 
                 // Render Opaques
-                var litSettings = new DrawRendererSettings(cullResults, camera, m_LitPassName);
+                var litSettings = new DrawRendererSettings(m_CullResults, camera, m_LitPassName);
                 litSettings.sorting.flags = SortFlags.CommonOpaque;
                 litSettings.inputFilter.SetQueuesOpaque();
                 litSettings.rendererConfiguration = configuration;
 
-                var unlitSettings = new DrawRendererSettings(cullResults, camera, m_UnlitPassName);
+                var unlitSettings = new DrawRendererSettings(m_CullResults, camera, m_UnlitPassName);
                 unlitSettings.sorting.flags = SortFlags.CommonOpaque;
                 unlitSettings.inputFilter.SetQueuesOpaque();
 
                 context.DrawRenderers(ref litSettings);
 
                 // Release temporary RT
-                var discardRT = new CommandBuffer();
+                var discardRT = CommandBufferPool.Get();
                 discardRT.ReleaseTemporaryRT(m_ShadowMapProperty);
                 context.ExecuteCommandBuffer(discardRT);
-                discardRT.Dispose();
+                CommandBufferPool.Release(cmd);
 
                 context.DrawRenderers(ref unlitSettings);
 
@@ -322,7 +323,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
                 }
             }
 
-            CommandBuffer cmd = new CommandBuffer () { name = "SetupShadowShaderConstants" };
+            CommandBuffer cmd = CommandBufferPool.Get("SetupShadowShaderConstants");
             cmd.SetGlobalVector("globalLightCount", new Vector4 (pixelLightsCount, 0.0f, 0.0f, 0.0f));
             cmd.SetGlobalVectorArray ("globalLightPos", m_LightPositions);
             cmd.SetGlobalVectorArray ("globalLightColor", m_LightColors);
@@ -330,7 +331,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             cmd.SetGlobalVectorArray ("globalLightSpotDir", m_LightSpotDirections);
             cmd.SetGlobalBuffer("globalLightIndexList", m_LightIndexListBuffer);
             context.ExecuteCommandBuffer(cmd);
-            cmd.Dispose();
+            CommandBufferPool.Release(cmd);
         }
 
         private void SetShaderKeywords(ref LightData lightData, ref ScriptableRenderContext context)
@@ -354,7 +355,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             if (!cullResults.GetShadowCasterBounds(shadowLightIndex, out bounds))
                 return false;
 
-            var setRenderTargetCommandBuffer = new CommandBuffer();
+            var setRenderTargetCommandBuffer = CommandBufferPool.Get();
             setRenderTargetCommandBuffer.name = "Render packed shadows";
             setRenderTargetCommandBuffer.GetTemporaryRT(m_ShadowMapProperty, m_ShadowSettings.shadowAtlasWidth,
                 m_ShadowSettings.shadowAtlasHeight, m_DepthBufferBits, FilterMode.Bilinear, RenderTextureFormat.Depth,
@@ -362,7 +363,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             setRenderTargetCommandBuffer.SetRenderTarget(m_ShadowMapRTID);
             setRenderTargetCommandBuffer.ClearRenderTarget(true, true, Color.black);
             context.ExecuteCommandBuffer(setRenderTargetCommandBuffer);
-            setRenderTargetCommandBuffer.Dispose();
+            CommandBufferPool.Release(setRenderTargetCommandBuffer);
 
             float shadowNearPlane = m_Asset.ShadowNearOffset;
             Vector3 splitRatio = m_ShadowSettings.directionalLightCascades;
@@ -444,14 +445,14 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
         private void RenderShadowSlice(ref ScriptableRenderContext context, int cascadeIndex,
             Matrix4x4 proj, Matrix4x4 view, DrawShadowsSettings settings)
         {
-            var buffer = new CommandBuffer() {name = "Prepare Shadowmap Slice"};
+            var buffer = CommandBufferPool.Get("Prepare Shadowmap Slice");
             buffer.SetViewport(new Rect(m_ShadowSlices[cascadeIndex].atlasX, m_ShadowSlices[cascadeIndex].atlasY,
                     m_ShadowSlices[cascadeIndex].shadowResolution, m_ShadowSlices[cascadeIndex].shadowResolution));
             buffer.SetViewProjectionMatrices(view, proj);
             context.ExecuteCommandBuffer(buffer);
-            buffer.Dispose();
 
             context.DrawShadows(ref settings);
+            CommandBufferPool.Release(buffer);
         }
 
         private int GetMaxTileResolutionInAtlas(int atlasWidth, int atlasHeight, int tileCount)
@@ -499,14 +500,14 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
                 0.5f * invShadowResolution, -0.5f * invShadowResolution
             };
 
-            var setupShadow = new CommandBuffer() {name = "SetupShadowShaderConstants"};
+            var setupShadow = CommandBufferPool.Get("SetupShadowShaderConstants");
             setupShadow.SetGlobalMatrixArray("_WorldToShadow", shadowMatrices);
             setupShadow.SetGlobalVectorArray("_DirShadowSplitSpheres", m_DirectionalShadowSplitDistances);
             setupShadow.SetGlobalVector("_ShadowLightDirection", new Vector4(-shadowLightDir.x, -shadowLightDir.y, -shadowLightDir.z, 0.0f));
             setupShadow.SetGlobalVector("_ShadowData", new Vector4(shadowLightIndex, bias, normalBias, 0.0f));
             setupShadow.SetGlobalFloatArray("_PCFKernel", pcfKernel);
             context.ExecuteCommandBuffer(setupShadow);
-            setupShadow.Dispose();
+            CommandBufferPool.Release(setupShadow);
         }
 
         private void SetShaderKeywords(CommandBuffer cmd, bool renderShadows, bool singleDirecitonal, bool vertexLightSupport)
